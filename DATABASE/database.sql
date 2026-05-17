@@ -1,189 +1,302 @@
-# Formatted MySQL Database SQL File
+-- ============================================================
+--  SecureRank — Secure Ranked Multi-Keyword Search System
+--              over Encrypted Cloud Data
+--
+--  Database : securerank_db
+--  Project  : MJDM04 | SecureRank-Cloud-Dynamic-Multi-Keyword-Search-over-Encrypted-Data
+--  Version  : 2.0  (table names match original servlet code)
+--
+--  System Roles:
+--    DO  = Data Owner       — encrypts and uploads files
+--    DC  = Data Consumer    — searches and downloads files
+--    PKG = Private Key Gen  — issues keys to DO and DC
+--    CS  = Cloud Server / Admin — manages users, monitors system
+--    SCP = Secure Coprocessor  — verifies Boolean match & ranks
+--
+--  Tables:
+--    1. doregister   — Data Owner accounts        (DO)
+--    2. dcregister   — Data Consumer accounts     (DC)
+--    3. cloudserver  — Admin / Cloud Server login  (CS)
+--    4. pkg          — Private Key Generator login (PKG)
+--    5. upload       — Encrypted files uploaded by DO
+--    6. keygen       — Secret/master keys issued by PKG
+--    7. trapdoor     — Encrypted search queries from DC
+--    8. request      — DC file access requests
+--    9. response     — Cloud Server ranked search results
+--   10. equality     — SCP Boolean equality verification
+--
+--  Import : mysql -u root -proot securerank_db < securerank_database.sql
+--  JDBC   : jdbc:mysql://localhost:3306/securerank_db
+-- ============================================================
 
-```sql
+CREATE DATABASE IF NOT EXISTS `securerank_db`
+  DEFAULT CHARACTER SET utf8
+  DEFAULT COLLATE utf8_general_ci;
+
+USE `securerank_db`;
 
 
-CREATE DATABASE IF NOT EXISTS `genricpks-2024`
-DEFAULT CHARACTER SET latin1;
+-- ============================================================
+-- 1. DOREGISTER  (Data Owner accounts)
+--    DO registers here. Admin sets status1='Approved' to allow login.
+--    Servlet reference: DOLogin.java, RegisterServlet.java
+-- ============================================================
 
-USE `genricpks-2024`;
+DROP TABLE IF EXISTS `doregister`;
 
--- --------------------------------------------------------
--- Table structure for `equality`
--- --------------------------------------------------------
+CREATE TABLE `doregister` (
+    `id`       INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `name`     VARCHAR(255) DEFAULT NULL             COMMENT 'Full name of Data Owner',
+    `email`    VARCHAR(255) DEFAULT NULL             COMMENT 'Login email (unique)',
+    `password` VARCHAR(255) DEFAULT NULL             COMMENT 'Login password',
+    `mobile`   VARCHAR(15)  DEFAULT NULL             COMMENT 'Contact number',
+    `address`  VARCHAR(500) DEFAULT NULL             COMMENT 'Address',
+    `status1`  VARCHAR(50)  DEFAULT 'Pending'        COMMENT 'Pending → Approved by Admin',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_do_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `equality`;
-
-CREATE TABLE `equality` (
-    `Rid` VARCHAR(11) DEFAULT NULL,
-    `Uid` VARCHAR(255) DEFAULT NULL,
-    `Fid` VARCHAR(255) DEFAULT NULL,
-    `Tkey` VARCHAR(255) DEFAULT NULL,
-    `Status` VARCHAR(255) DEFAULT NULL,
-    `recid` VARCHAR(266) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
-INSERT INTO `equality`
-(`Rid`, `Uid`, `Fid`, `Tkey`, `Status`, `recid`)
+INSERT INTO `doregister` (`name`, `email`, `password`, `mobile`, `address`, `status1`)
 VALUES
-('1', 'aaa@gmail.com', '1', '65V23gddb1VfWlbY', 'Verified', 'bb@gmail.com'),
-('2', 'aaa@gmail.com', '1', '65V23gddb1VfWlbY', 'Verified', 'dd@gmail.com');
+  ('Alice Thomas', 'alice@securerank.com', 'Alice@123', '9876500001', 'Hyderabad, Telangana', 'Approved'),
+  ('Ravi Kumar',   'ravi@securerank.com',  'Ravi@123',  '9876500004', 'Warangal, Telangana',  'Pending');
 
--- --------------------------------------------------------
--- Table structure for `keygen`
--- --------------------------------------------------------
 
-DROP TABLE IF EXISTS `keygen`;
+-- ============================================================
+-- 2. DCREGISTER  (Data Consumer accounts)
+--    DC registers here. Admin sets status='Approved' to allow login.
+--    Servlet reference: DCLogin.java, RegisterServlet.java
+-- ============================================================
 
-CREATE TABLE `keygen` (
-    `sk` VARCHAR(255) DEFAULT NULL,
-    `mk` VARCHAR(255) DEFAULT NULL,
-    `uid` VARCHAR(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+DROP TABLE IF EXISTS `dcregister`;
 
-INSERT INTO `keygen`
-(`sk`, `mk`, `uid`)
+CREATE TABLE `dcregister` (
+    `id`       INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `name`     VARCHAR(255) DEFAULT NULL             COMMENT 'Full name of Data Consumer',
+    `email`    VARCHAR(255) DEFAULT NULL             COMMENT 'Login email (unique)',
+    `password` VARCHAR(255) DEFAULT NULL             COMMENT 'Login password',
+    `mobile`   VARCHAR(15)  DEFAULT NULL             COMMENT 'Contact number',
+    `address`  VARCHAR(500) DEFAULT NULL             COMMENT 'Address',
+    `status`   VARCHAR(50)  DEFAULT 'Pending'        COMMENT 'Pending → Approved by Admin',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_dc_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `dcregister` (`name`, `email`, `password`, `mobile`, `address`, `status`)
 VALUES
-('202hz9h', 'da869u5', 'aaa@gmail.com');
+  ('Bob Kumar',   'bob@securerank.com',    'Bob@123',    '9876500002', 'Bangalore, Karnataka', 'Approved'),
+  ('Diana Reddy', 'diana@securerank.com',  'Diana@123',  '9876500003', 'Chennai, Tamil Nadu',  'Approved'),
+  ('Suresh Naik', 'suresh@securerank.com', 'Suresh@123', '9876500005', 'Pune, Maharashtra',    'Pending');
 
--- --------------------------------------------------------
--- Table structure for `owner`
--- --------------------------------------------------------
 
-DROP TABLE IF EXISTS `owner`;
+-- ============================================================
+-- 3. CLOUDSERVER  (Admin / Cloud Server login)
+--    The CS admin approves users and monitors the entire system.
+--    Servlet reference: CSLogin.java
+-- ============================================================
 
-CREATE TABLE `owner` (
-    `Name` VARCHAR(255) DEFAULT NULL,
-    `Email` VARCHAR(255) DEFAULT NULL,
-    `Age` VARCHAR(255) DEFAULT NULL,
-    `Password` VARCHAR(255) DEFAULT NULL,
-    `Mobile` VARCHAR(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+DROP TABLE IF EXISTS `cloudserver`;
 
-INSERT INTO `owner`
-(`Name`, `Email`, `Age`, `Password`, `Mobile`)
-VALUES
-('aaa', 'aaa@gmail.com', '23', 'Pass@123', '8989789079');
+CREATE TABLE `cloudserver` (
+    `id`       INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `name`     VARCHAR(255) DEFAULT NULL             COMMENT 'Admin name',
+    `email`    VARCHAR(255) DEFAULT NULL             COMMENT 'Admin login email',
+    `password` VARCHAR(255) DEFAULT NULL             COMMENT 'Admin login password',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_cs_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
--- Table structure for `request`
--- --------------------------------------------------------
+INSERT INTO `cloudserver` (`name`, `email`, `password`)
+VALUES ('Admin', 'admin@securerank.com', 'admin123');
 
-DROP TABLE IF EXISTS `request`;
 
-CREATE TABLE `request` (
-    `Rid` INT(11) NOT NULL AUTO_INCREMENT,
-    `uid` VARCHAR(255) DEFAULT NULL,
-    `fid` VARCHAR(255) DEFAULT NULL,
-    `Receiver` VARCHAR(1000) DEFAULT NULL,
-    `Status` VARCHAR(255) DEFAULT NULL,
-    UNIQUE KEY `Rid` (`Rid`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+-- ============================================================
+-- 4. PKG  (Private Key Generator login)
+--    PKG generates and distributes cryptographic keys to DO and DC.
+--    Servlet reference: PKGLogin.java, GeneratePKDC.java
+-- ============================================================
 
-INSERT INTO `request`
-(`Rid`, `uid`, `fid`, `Receiver`, `Status`)
-VALUES
-(1, 'aaa@gmail.com', '1', 'bb@gmail.com', 'Search request'),
-(2, 'aaa@gmail.com', '1', 'dd@gmail.com', 'Search request');
+DROP TABLE IF EXISTS `pkg`;
 
--- --------------------------------------------------------
--- Table structure for `response`
--- --------------------------------------------------------
+CREATE TABLE `pkg` (
+    `id`       INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `name`     VARCHAR(255) DEFAULT NULL             COMMENT 'PKG admin name',
+    `email`    VARCHAR(255) DEFAULT NULL             COMMENT 'PKG login email',
+    `password` VARCHAR(255) DEFAULT NULL             COMMENT 'PKG login password',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_pkg_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `response`;
+INSERT INTO `pkg` (`name`, `email`, `password`)
+VALUES ('PKG Admin', 'pkg@securerank.com', 'pkg123');
 
-CREATE TABLE `response` (
-    `Rid` VARCHAR(11) NOT NULL,
-    `uid` VARCHAR(255) DEFAULT NULL,
-    `fid` VARCHAR(255) DEFAULT NULL,
-    `TKey` VARCHAR(255) DEFAULT NULL,
-    `recid` VARCHAR(1000) DEFAULT NULL,
-    PRIMARY KEY (`Rid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
-INSERT INTO `response`
-(`Rid`, `uid`, `fid`, `TKey`, `recid`)
-VALUES
-('1', 'aaa@gmail.com', '1', '65V23gddb1VfWlbY', 'bb@gmail.com'),
-('2', 'aaa@gmail.com', '1', '65V23gddb1VfWlbY', 'dd@gmail.com');
-
--- --------------------------------------------------------
--- Table structure for `trapdoor`
--- --------------------------------------------------------
-
-DROP TABLE IF EXISTS `trapdoor`;
-
-CREATE TABLE `trapdoor` (
-    `name` VARCHAR(255) DEFAULT NULL,
-    `uid` VARCHAR(255) DEFAULT NULL,
-    `trap` VARCHAR(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
--- --------------------------------------------------------
--- Table structure for `upload`
--- --------------------------------------------------------
+-- ============================================================
+-- 5. UPLOAD  (Encrypted files stored by Data Owner)
+--    Each row = one encrypted file uploaded by a DO.
+--    - Photo         : raw file bytes (BLOB)
+--    - Enc           : encrypted file content (GM/Paillier algorithm)
+--    - Tkey          : trapdoor key for keyword index matching
+--    - stringcontent : TF-IDF encrypted keyword index vector
+--    Servlet reference: UploadFile.java
+-- ============================================================
 
 DROP TABLE IF EXISTS `upload`;
 
 CREATE TABLE `upload` (
-    `Fid` INT(11) NOT NULL AUTO_INCREMENT,
-    `Email` VARCHAR(255) DEFAULT NULL,
-    `Filename` VARCHAR(255) DEFAULT NULL,
-    `Photo` LONGBLOB,
-    `Label` VARCHAR(255) DEFAULT NULL,
-    `Enc` LONGTEXT,
-    `Content` VARCHAR(255) DEFAULT NULL,
-    `Tkey` VARCHAR(255) DEFAULT NULL,
-    `stringcontent` LONGTEXT,
+    `Fid`           INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'File ID (primary key)',
+    `Email`         VARCHAR(255) DEFAULT NULL            COMMENT 'DO email who uploaded this file',
+    `Filename`      VARCHAR(255) DEFAULT NULL            COMMENT 'Original file name',
+    `Photo`         LONGBLOB                             COMMENT 'Raw file bytes',
+    `Label`         VARCHAR(255) DEFAULT NULL            COMMENT 'File classification label',
+    `Enc`           LONGTEXT                             COMMENT 'GM/Paillier encrypted file content',
+    `Content`       VARCHAR(255) DEFAULT NULL            COMMENT 'Original plaintext summary',
+    `Tkey`          VARCHAR(255) DEFAULT NULL            COMMENT 'Trapdoor key for index matching',
+    `stringcontent` LONGTEXT                             COMMENT 'TF-IDF encrypted keyword index vector',
     PRIMARY KEY (`Fid`),
-    UNIQUE KEY `Fid` (`Fid`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+    UNIQUE KEY `uq_fid` (`Fid`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
-INSERT INTO `upload`
-(`Fid`, `Email`, `Filename`, `Photo`, `Label`, `Enc`, `Content`, `Tkey`, `stringcontent`)
-VALUES
-(
-    1,
-    'aaa@gmail.com',
-    'sample.txt',
-    NULL,
-    'Confidential',
-    'EncryptedDataExample',
-    'Original file content',
-    '65V23gddb1VfWlbY',
-    'String content example'
+INSERT INTO `upload` (`Email`, `Filename`, `Photo`, `Label`, `Enc`, `Content`, `Tkey`, `stringcontent`)
+VALUES (
+  'alice@securerank.com',
+  'medical_report.txt',
+  NULL,
+  'Confidential',
+  'GM_ENCRYPTED_CONTENT_EXAMPLE_XYZ123',
+  'Patient medical records Q1 2024',
+  '65V23gddb1VfWlbY',
+  'TFIDF_ENCRYPTED_KEYWORD_VECTOR_INDEX'
 );
 
--- --------------------------------------------------------
--- Table structure for `user`
--- --------------------------------------------------------
 
-DROP TABLE IF EXISTS `user`;
+-- ============================================================
+-- 6. KEYGEN  (Cryptographic keys generated by PKG)
+--    - sk  : secret key issued to the user (DO or DC)
+--    - mk  : PKG master key used to derive secret keys
+--    - uid : email of the user this key belongs to
+--    Servlet reference: GeneratePKDC.java
+-- ============================================================
 
-CREATE TABLE `user` (
-    `Name` VARCHAR(255) DEFAULT NULL,
-    `Email` VARCHAR(255) DEFAULT NULL,
-    `Age` VARCHAR(255) DEFAULT NULL,
-    `Password` VARCHAR(255) DEFAULT NULL,
-    `Mobile` VARCHAR(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+DROP TABLE IF EXISTS `keygen`;
 
-INSERT INTO `user`
-(`Name`, `Email`, `Age`, `Password`, `Mobile`)
+CREATE TABLE `keygen` (
+    `id`  INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `sk`  VARCHAR(255) DEFAULT NULL            COMMENT 'Secret key issued to user',
+    `mk`  VARCHAR(255) DEFAULT NULL            COMMENT 'PKG master key',
+    `uid` VARCHAR(255) DEFAULT NULL            COMMENT 'Email of key recipient (DO or DC)',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `keygen` (`sk`, `mk`, `uid`)
+VALUES ('202hz9h_SECRET', 'da869u5_MASTER', 'alice@securerank.com');
+
+
+-- ============================================================
+-- 7. TRAPDOOR  (Encrypted search queries from Data Consumer)
+--    A trapdoor = an encrypted form of a keyword.
+--    The cloud server uses it to search the index
+--    without ever seeing the actual keyword plaintext.
+--    Servlet reference: GenerateTrapdoor.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `trapdoor`;
+
+CREATE TABLE `trapdoor` (
+    `id`   INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `name` VARCHAR(255) DEFAULT NULL            COMMENT 'Keyword name (DC reference only)',
+    `uid`  VARCHAR(255) DEFAULT NULL            COMMENT 'DC email who generated this trapdoor',
+    `trap` VARCHAR(255) DEFAULT NULL            COMMENT 'Encrypted trapdoor value sent to cloud',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Populated at runtime when DC submits a search query
+
+
+-- ============================================================
+-- 8. REQUEST  (DC file access requests to Cloud Server)
+--    DC sends a search request for a specific file.
+--    Status: 'Search Request' → processed by CS
+--    Servlet reference: SendRequest.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `request`;
+
+CREATE TABLE `request` (
+    `Rid`      INT(11)       NOT NULL AUTO_INCREMENT COMMENT 'Request ID',
+    `uid`      VARCHAR(255)  DEFAULT NULL            COMMENT 'DO email (owner of the file)',
+    `fid`      VARCHAR(255)  DEFAULT NULL            COMMENT 'File ID being requested',
+    `Receiver` VARCHAR(1000) DEFAULT NULL            COMMENT 'DC email making the request',
+    `Status`   VARCHAR(255)  DEFAULT 'Search Request' COMMENT 'Current request status',
+    UNIQUE KEY `uq_rid` (`Rid`),
+    PRIMARY KEY (`Rid`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+INSERT INTO `request` (`uid`, `fid`, `Receiver`, `Status`)
 VALUES
-('bbb', 'bb@gmail.com', '22', 'Pass@123', '9876543211'),
-('ddd', 'dd@gmail.com', '23', 'Pass@123', '9876543214');
+  ('alice@securerank.com', '1', 'bob@securerank.com',   'Search Request'),
+  ('alice@securerank.com', '1', 'diana@securerank.com', 'Search Request');
 
--- --------------------------------------------------------
--- SQL Settings Restore
--- --------------------------------------------------------
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-```
+-- ============================================================
+-- 9. RESPONSE  (Cloud Server ranked search results)
+--    Cloud Server stores matched file + trapdoor key here.
+--    DC retrieves this to download the correct encrypted file.
+--    Servlet reference: SearchFile.java
+-- ============================================================
 
-You can now copy and paste this formatted SQL into a new `.sql` file.
+DROP TABLE IF EXISTS `response`;
 
-continue
+CREATE TABLE `response` (
+    `Rid`   VARCHAR(11)   NOT NULL COMMENT 'Response ID',
+    `uid`   VARCHAR(255)  DEFAULT NULL COMMENT 'DO email (owner of matched file)',
+    `fid`   VARCHAR(255)  DEFAULT NULL COMMENT 'Matched file ID',
+    `TKey`  VARCHAR(255)  DEFAULT NULL COMMENT 'Trapdoor key used for matching',
+    `recid` VARCHAR(1000) DEFAULT NULL COMMENT 'DC email receiving this result',
+    PRIMARY KEY (`Rid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `response` (`Rid`, `uid`, `fid`, `TKey`, `recid`)
+VALUES
+  ('1', 'alice@securerank.com', '1', '65V23gddb1VfWlbY', 'bob@securerank.com'),
+  ('2', 'alice@securerank.com', '1', '65V23gddb1VfWlbY', 'diana@securerank.com');
+
+
+-- ============================================================
+-- 10. EQUALITY  (SCP Boolean equality verification)
+--     Secure Coprocessor verifies that the DC trapdoor matches
+--     the file's stored trapdoor — confirming Boolean keyword match.
+--     Status: 'Pending' → 'Verified'
+--     Servlet reference: VerifyEquality.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `equality`;
+
+CREATE TABLE `equality` (
+    `Rid`    VARCHAR(11)  DEFAULT NULL COMMENT 'Verification record ID',
+    `Uid`    VARCHAR(255) DEFAULT NULL COMMENT 'DO email (file owner)',
+    `Fid`    VARCHAR(255) DEFAULT NULL COMMENT 'File ID being verified',
+    `Tkey`   VARCHAR(255) DEFAULT NULL COMMENT 'Trapdoor key used for verification',
+    `Status` VARCHAR(255) DEFAULT NULL COMMENT 'Pending → Verified',
+    `recid`  VARCHAR(266) DEFAULT NULL COMMENT 'DC email being verified'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `equality` (`Rid`, `Uid`, `Fid`, `Tkey`, `Status`, `recid`)
+VALUES
+  ('1', 'alice@securerank.com', '1', '65V23gddb1VfWlbY', 'Verified', 'bob@securerank.com'),
+  ('2', 'alice@securerank.com', '1', '65V23gddb1VfWlbY', 'Verified', 'diana@securerank.com');
+
+
+-- ============================================================
+-- END OF securerank_db SCHEMA
+--
+--  Test Login Credentials:
+--  ┌─────────────────┬─────────────────────────────┬───────────┐
+--  │ Role            │ Email                       │ Password  │
+--  ├─────────────────┼─────────────────────────────┼───────────┤
+--  │ Admin (CS)      │ admin@securerank.com         │ admin123  │
+--  │ Data Owner (DO) │ alice@securerank.com         │ Alice@123 │
+--  │ Data Consumer   │ bob@securerank.com           │ Bob@123   │
+--  │ PKG             │ pkg@securerank.com           │ pkg123    │
+--  └─────────────────┴─────────────────────────────┴───────────┘
+-- ============================================================
