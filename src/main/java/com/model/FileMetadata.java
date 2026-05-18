@@ -1,4 +1,4 @@
-package com.rbdc.model;
+package com.model;
 
 import java.sql.Timestamp;
 

@@ -3,8 +3,8 @@
 --              over Encrypted Cloud Data
 --
 --  Database : securerank_db
---  Project  : MJDM04 | SecureRank-Cloud-Dynamic-Multi-Keyword-Search-over-Encrypted-Data
---  Version  : 2.0  (table names match original servlet code)
+--  Project  :  SecureRank-Cloud-Dynamic-Multi-Keyword-Search-over-Encrypted-Data
+--  Version  : 2.0 
 --
 --  System Roles:
 --    DO  = Data Owner       — encrypts and uploads files
@@ -300,3 +300,40 @@ VALUES
 --  │ PKG             │ pkg@securerank.com           │ pkg123    │
 --  └─────────────────┴─────────────────────────────┴───────────┘
 -- ============================================================
+
+
+-- ============================================================
+-- 11. STORE  (File master keys stored by Data Owner)
+--     Holds the master key (mk) for each uploaded file.
+--     PKG reads from here to send mk to DC via SendKeysToDC.
+--     Servlet reference: UploadFile.java, SendKeysToDC.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `store`;
+
+CREATE TABLE `store` (
+    `id`  INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto ID',
+    `fid` VARCHAR(255) DEFAULT NULL            COMMENT 'File ID from upload table',
+    `mk`  VARCHAR(255) DEFAULT NULL            COMMENT 'Master key for this file',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `store` (`fid`, `mk`)
+VALUES ('1', 'da869u5_MASTER');
+
+
+-- ============================================================
+-- 12. UKEYS  (Master keys sent by PKG to Data Consumers)
+--     Records which DC received which file's master key.
+--     Used to prevent duplicate key sending.
+--     Servlet reference: SendKeysToDC.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `ukeys`;
+
+CREATE TABLE `ukeys` (
+    `fid`  VARCHAR(255) DEFAULT NULL COMMENT 'File ID',
+    `doid` VARCHAR(255) DEFAULT NULL COMMENT 'Data Owner email',
+    `uid`  VARCHAR(255) DEFAULT NULL COMMENT 'Data Consumer email (key recipient)',
+    `key1` VARCHAR(255) DEFAULT NULL COMMENT 'Master key value sent to DC'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

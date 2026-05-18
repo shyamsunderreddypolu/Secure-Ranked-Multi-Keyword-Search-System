@@ -1,4 +1,4 @@
-package com.rbdc.servlet;
+package com.servlets;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.rbdc.dao.DBConnection;
+import com.dao.DBConnection;
 
 /**
  * RegisterServlet
