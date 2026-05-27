@@ -1,6 +1,9 @@
 package com.servlets;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -9,7 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.dao.DBConnection;
-import java.sql.*;
 
 /**
  * ApproveDO
@@ -44,15 +46,17 @@ public class ApproveDO extends HttpServlet {
                       ? "Approved" : "Rejected";
 
         Connection con = DBConnection.connect();
-        try {
-            Statement st = con.createStatement();
-            st.executeUpdate(
-                "update doregister set status1='" + status
-                + "' where email='" + email + "'");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException ignored) {}
+        if (con != null) {
+            String sql = "update doregister set status1=? where email=?";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, status);
+                ps.setString(2, email);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                try { con.close(); } catch (SQLException ignored) {}
+            }
         }
 
         response.sendRedirect("ViewDOList.jsp");

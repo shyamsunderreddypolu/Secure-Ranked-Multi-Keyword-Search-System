@@ -52,16 +52,37 @@ public class DOLogin extends HttpServlet {
         String uid      = request.getParameter("email");
         String pwd      = request.getParameter("password");
 
-        String sql = "select * from doregister where email='" + uid
-                   + "' and password='" + pwd + "'and status1='Approved'";
-        boolean b  = DBConnection.getData(sql);
+        java.sql.Connection con = DBConnection.connect();
+        if (con == null) {
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Database connection failed.');");
+            pw.println("window.location='DOLogin.jsp';</script>");
+            return;
+        }
+
+        boolean valid = false;
+        String name   = "";
+
+        String sql = "select name from doregister where email=? and password=? and status1='Approved'";
+        try (java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, uid);
+            ps.setString(2, pwd);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    valid = true;
+                    name  = rs.getString("name");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { con.close(); } catch (java.sql.SQLException ignored) {}
+        }
 
         HttpSession session = request.getSession();
 
-        if (b == true) {
+        if (valid) {
             session.setAttribute("email", uid);
-            sql = "select name from doregister where email='" + uid + "'";
-            String name = DBConnection.getName(sql);
             session.setAttribute("name", name);
             response.sendRedirect("DOHome.jsp");
         } else {

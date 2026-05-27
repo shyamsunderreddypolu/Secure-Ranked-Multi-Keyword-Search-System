@@ -337,3 +337,27 @@ CREATE TABLE `ukeys` (
     `uid`  VARCHAR(255) DEFAULT NULL COMMENT 'Data Consumer email (key recipient)',
     `key1` VARCHAR(255) DEFAULT NULL COMMENT 'Master key value sent to DC'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- ============================================================
+-- 13. KEYREQ  (Decryption key requests from Data Consumers)
+--     Records DC requests for master key access to specific files.
+--     Status: 'Pending' → 'Approved' (approved by Admin)
+--     Servlet reference: DCDecryptRequest.java
+-- ============================================================
+
+DROP TABLE IF EXISTS `keyreq`;
+
+CREATE TABLE `keyreq` (
+    `id`      INT(11)      NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment ID',
+    `uid`     VARCHAR(255) DEFAULT NULL            COMMENT 'DC email making request',
+    `fid`     VARCHAR(255) DEFAULT NULL            COMMENT 'File ID being requested',
+    `status1` VARCHAR(50)  DEFAULT 'Pending'       COMMENT 'Approval status',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `keyreq` (`uid`, `fid`, `status1`) VALUES
+  ('bob@securerank.com', '1', 'Approved'),
+  ('diana@securerank.com', '1', 'Pending');
+
+

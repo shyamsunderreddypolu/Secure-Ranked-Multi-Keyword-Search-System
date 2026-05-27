@@ -2,6 +2,10 @@ package com.servlets;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -49,16 +53,37 @@ public class CloudControllerLogin extends HttpServlet {
         String email   = request.getParameter("email");
         String pwd     = request.getParameter("password");
 
-        String sql = "select * from cloudserver where email='" + email
-                   + "' and password='" + pwd + "'";
-        boolean b  = DBConnection.getData(sql);
+        Connection con = DBConnection.connect();
+        if (con == null) {
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Database connection failed.');");
+            pw.println("window.location='CloudControllerLogin.jsp';</script>");
+            return;
+        }
+
+        boolean valid = false;
+        String name   = "";
+
+        String sql = "select name from cloudserver where email=? and password=?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.setString(2, pwd);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    valid = true;
+                    name  = rs.getString("name");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { con.close(); } catch (SQLException ignored) {}
+        }
 
         HttpSession session = request.getSession();
 
-        if (b == true) {
+        if (valid) {
             session.setAttribute("csemail", email);
-            String name = DBConnection.getName(
-                "select name from cloudserver where email='" + email + "'");
             session.setAttribute("csname", name);
             response.sendRedirect("CSHome.jsp");
         } else {

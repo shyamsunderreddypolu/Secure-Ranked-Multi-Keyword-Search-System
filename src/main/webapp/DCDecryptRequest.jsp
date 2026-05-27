@@ -111,10 +111,9 @@
             <% } else { %>
               <span class="status-pending">Pending</span>
             <% } %>
-          </td>
           <td>
             <% if (!"Approved".equals(status1)) { %>
-              <a href="DCDecryptRequest?uid=<%= uid %>" class="btn-approve">Approve</a>
+              <a href="DCDecryptRequest?uid=<%= uid %>&fid=<%= fid %>" class="btn-approve">Approve</a>
             <% } else { %>
               <span style="font-size:12px;color:var(--text-faint);">Done</span>
             <% } %>

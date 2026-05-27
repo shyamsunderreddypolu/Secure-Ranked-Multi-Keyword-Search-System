@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import javax.servlet.ServletException;
@@ -92,8 +93,21 @@ public class RegisterServlet extends HttpServlet {
             String name, String email, String password,
             String mobile, String address) throws IOException {
 
-        // Check duplicate email
-        if (DBConnection.getData("select * from doregister where email='" + email + "'")) {
+        // Check duplicate email using PreparedStatement
+        boolean exists = false;
+        String checkSql = "select id from doregister where email=?";
+        try (PreparedStatement psCheck = con.prepareStatement(checkSql)) {
+            psCheck.setString(1, email);
+            try (ResultSet rs = psCheck.executeQuery()) {
+                if (rs.next()) {
+                    exists = true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (exists) {
             sendAlert(pw, "This email is already registered as Data Owner.", "register.jsp");
             return;
         }
@@ -125,8 +139,21 @@ public class RegisterServlet extends HttpServlet {
             String name, String email, String password,
             String mobile, String address) throws IOException {
 
-        // Check duplicate email
-        if (DBConnection.getData("select * from dcregister where email='" + email + "'")) {
+        // Check duplicate email using PreparedStatement
+        boolean exists = false;
+        String checkSql = "select id from dcregister where email=?";
+        try (PreparedStatement psCheck = con.prepareStatement(checkSql)) {
+            psCheck.setString(1, email);
+            try (ResultSet rs = psCheck.executeQuery()) {
+                if (rs.next()) {
+                    exists = true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (exists) {
             sendAlert(pw, "This email is already registered as Data Consumer.", "register.jsp");
             return;
         }

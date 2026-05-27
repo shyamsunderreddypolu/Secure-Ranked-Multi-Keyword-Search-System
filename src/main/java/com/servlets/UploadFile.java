@@ -149,9 +149,12 @@ public class UploadFile extends HttpServlet {
                 }
 
                 // ── Store mk in store table for PKG ────────────
-                String storeSql = "insert into store(fid, mk) values('" + newFid + "','" + mk + "')";
-                java.sql.Statement st = con.createStatement();
-                st.executeUpdate(storeSql);
+                String storeSql = "insert into store(fid, mk) values(?, ?)";
+                try (PreparedStatement psStore = con.prepareStatement(storeSql)) {
+                    psStore.setString(1, newFid);
+                    psStore.setString(2, mk);
+                    psStore.executeUpdate();
+                }
 
                 pw.println("<script type=\"text/javascript\">");
                 pw.println("alert('File uploaded and encrypted successfully!');");

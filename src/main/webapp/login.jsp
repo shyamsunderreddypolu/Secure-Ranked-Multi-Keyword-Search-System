@@ -19,7 +19,7 @@
       --purple-mid: #534AB7;
       --amber-bg:   #FAEEDA;
       --amber-mid:  #854F0B;
-      --gray-bg:    #20200c;
+      --gray-bg:    #F5F5F3;
       --text-main:  #1A1A18;
       --text-muted: #5F5E5A;
       --text-faint: #A0A09A;

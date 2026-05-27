@@ -3,6 +3,7 @@ package com.servlets;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -34,7 +35,7 @@ import com.dao.DBConnection;
  *   5. Alert results found and redirect to DCResults.jsp
  *
  * URL   : /SearchFile  (GET)
- * Tables: trapdoor, upload, request, response
+ * Tables: trapdoor, upload, request, response, equality
  * ─────────────────────────────────────────────────────────────
  */
 @WebServlet("/SearchFile")
@@ -46,7 +47,7 @@ public class SearchFile extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+                          HttpServletResponse response)
             throws ServletException, IOException {
 
         PrintWriter pw = response.getWriter();
@@ -72,94 +73,139 @@ public class SearchFile extends HttpServlet {
 
         try {
             // ── Step 1: Fetch trapdoor value for this keyword ──
-            String trapSql = "select trap from trapdoor where name='" + keyword
-                           + "' and uid='" + dcEmail + "'";
-            Statement st1 = con.createStatement();
-            ResultSet rs1 = st1.executeQuery(trapSql);
+            String trapSql = "select trap from trapdoor where name=? and uid=?";
+            String trapValue = null;
 
-            if (!rs1.next()) {
+            try (PreparedStatement ps1 = con.prepareStatement(trapSql)) {
+                ps1.setString(1, keyword);
+                ps1.setString(2, dcEmail);
+                try (ResultSet rs1 = ps1.executeQuery()) {
+                    if (rs1.next()) {
+                        trapValue = rs1.getString("trap");
+                    }
+                }
+            }
+
+            if (trapValue == null) {
                 pw.println("<script>alert('No trapdoor found for keyword: "
                          + keyword + ". Please generate trapdoor first.');"
                          + "window.location='SearchFile.jsp';</script>");
                 return;
             }
-            String trapValue = rs1.getString("trap");
-            rs1.close(); st1.close();
 
             // ── Step 2: Match trapdoor against upload index ────
-            // The Cloud Server compares trap with Tkey in upload table
-            // This is the Boolean keyword search on encrypted index
-            Statement st2 = con.createStatement();
-            ResultSet rs2 = st2.executeQuery(
-                "select Fid, Email, Filename, Tkey, stringcontent from upload");
-
+            String uploadSql = "select Fid, Email, Filename, Tkey, stringcontent from upload";
             int matchCount = 0;
 
-            while (rs2.next()) {
-                String fid      = rs2.getString("Fid");
-                String doEmail  = rs2.getString("Email");
-                String filename = rs2.getString("Filename");
-                String tkey     = rs2.getString("Tkey");
-                String index    = rs2.getString("stringcontent");
+            try (PreparedStatement ps2 = con.prepareStatement(uploadSql);
+                 ResultSet rs2 = ps2.executeQuery()) {
 
-                // ── Equality check (SCP Boolean verification) ──
-                // In full system: Secure Coprocessor verifies
-                // trapdoor == f(keyword, secret_key) using
-                // homomorphic comparison on encrypted values.
-                // Here: check if keyword appears in decoded index.
-                boolean matched = matchTrapdoor(trapValue, tkey, index, keyword);
+                while (rs2.next()) {
+                    String fid      = rs2.getString("Fid");
+                    String doEmail  = rs2.getString("Email");
+                    String filename = rs2.getString("Filename");
+                    String tkey     = rs2.getString("Tkey");
+                    String index    = rs2.getString("stringcontent");
 
-                if (matched) {
-                    matchCount++;
+                    // ── Equality check (SCP Boolean verification) ──
+                    boolean matched = matchTrapdoor(trapValue, tkey, index, keyword);
 
-                    // ── Insert into request table ──────────────
-                    String checkReq = "select * from request where uid='"
-                            + doEmail + "' and fid='" + fid
-                            + "' and Receiver='" + dcEmail + "'";
-                    if (!DBConnection.getData(checkReq)) {
-                        Statement stReq = con.createStatement();
-                        stReq.executeUpdate(
-                            "insert into request(uid, fid, Receiver, Status) values('"
-                            + doEmail + "','" + fid + "','" + dcEmail
-                            + "','Search Request')");
-                        stReq.close();
-                    }
+                    if (matched) {
+                        matchCount++;
 
-                    // ── Insert into response table ─────────────
-                    String checkRes = "select * from response where uid='"
-                            + doEmail + "' and fid='" + fid
-                            + "' and recid='" + dcEmail + "'";
-                    if (!DBConnection.getData(checkRes)) {
-                        // Use request auto-id as response Rid
-                        String ridSql = "select Rid from request where uid='"
-                                + doEmail + "' and fid='" + fid
-                                + "' and Receiver='" + dcEmail + "'";
-                        String rid = DBConnection.getName(ridSql);
-                        if (rid != null && !rid.isEmpty()) {
-                            Statement stRes = con.createStatement();
-                            stRes.executeUpdate(
-                                "insert into response(Rid, uid, fid, TKey, recid) values('"
-                                + rid + "','" + doEmail + "','" + fid + "','"
-                                + tkey + "','" + dcEmail + "')");
-                            stRes.close();
+                        // ── Insert into request table ──────────────
+                        String checkReq = "select Rid from request where uid=? and fid=? and Receiver=?";
+                        boolean reqExists = false;
+                        try (PreparedStatement psCheckReq = con.prepareStatement(checkReq)) {
+                            psCheckReq.setString(1, doEmail);
+                            psCheckReq.setString(2, fid);
+                            psCheckReq.setString(3, dcEmail);
+                            try (ResultSet rsCheckReq = psCheckReq.executeQuery()) {
+                                if (rsCheckReq.next()) {
+                                    reqExists = true;
+                                }
+                            }
                         }
-                    }
 
-                    // ── Insert into equality (SCP verification) table
-                    String checkEq = "select * from equality where Uid='"
-                            + doEmail + "' and Fid='" + fid
-                            + "' and recid='" + dcEmail + "'";
-                    if (!DBConnection.getData(checkEq)) {
-                        Statement stEq = con.createStatement();
-                        stEq.executeUpdate(
-                            "insert into equality(Rid, Uid, Fid, Tkey, Status, recid) values('"
-                            + fid + "','" + doEmail + "','" + fid + "','"
-                            + tkey + "','Verified','" + dcEmail + "')");
-                        stEq.close();
+                        if (!reqExists) {
+                            String insertReq = "insert into request(uid, fid, Receiver, Status) values(?,?,?,'Search Request')";
+                            try (PreparedStatement psInsertReq = con.prepareStatement(insertReq)) {
+                                psInsertReq.setString(1, doEmail);
+                                psInsertReq.setString(2, fid);
+                                psInsertReq.setString(3, dcEmail);
+                                psInsertReq.executeUpdate();
+                            }
+                        }
+
+                        // Get the request ID (rid)
+                        String rid = "";
+                        try (PreparedStatement psGetRid = con.prepareStatement(checkReq)) {
+                            psGetRid.setString(1, doEmail);
+                            psGetRid.setString(2, fid);
+                            psGetRid.setString(3, dcEmail);
+                            try (ResultSet rsGetRid = psGetRid.executeQuery()) {
+                                if (rsGetRid.next()) {
+                                    rid = rsGetRid.getString("Rid");
+                                }
+                            }
+                        }
+
+                        // ── Insert into response table ─────────────
+                        String checkRes = "select Rid from response where uid=? and fid=? and recid=?";
+                        boolean resExists = false;
+                        try (PreparedStatement psCheckRes = con.prepareStatement(checkRes)) {
+                            psCheckRes.setString(1, doEmail);
+                            psCheckRes.setString(2, fid);
+                            psCheckRes.setString(3, dcEmail);
+                            try (ResultSet rsCheckRes = psCheckRes.executeQuery()) {
+                                if (rsCheckRes.next()) {
+                                    resExists = true;
+                                }
+                            }
+                        }
+
+                        if (!resExists && !rid.isEmpty()) {
+                            String insertRes = "insert into response(Rid, uid, fid, TKey, recid) values(?,?,?,?,?)";
+                            try (PreparedStatement psInsertRes = con.prepareStatement(insertRes)) {
+                                psInsertRes.setString(1, rid);
+                                psInsertRes.setString(2, doEmail);
+                                psInsertRes.setString(3, fid);
+                                psInsertRes.setString(4, tkey);
+                                psInsertRes.setString(5, dcEmail);
+                                psInsertRes.executeUpdate();
+                            }
+                        }
+
+                        // ── Insert into equality (SCP verification) table
+                        String checkEq = "select Rid from equality where Uid=? and Fid=? and recid=?";
+                        boolean eqExists = false;
+                        try (PreparedStatement psCheckEq = con.prepareStatement(checkEq)) {
+                            psCheckEq.setString(1, doEmail);
+                            psCheckEq.setString(2, fid);
+                            psCheckEq.setString(3, dcEmail);
+                            try (ResultSet rsCheckEq = psCheckEq.executeQuery()) {
+                                if (rsCheckEq.next()) {
+                                    eqExists = true;
+                                }
+                            }
+                        }
+
+                        if (!eqExists && !rid.isEmpty()) {
+                            String insertEq = "insert into equality(Rid, Uid, Fid, Tkey, Status, recid) values(?,?,?,?,?,?)";
+                            try (PreparedStatement psInsertEq = con.prepareStatement(insertEq)) {
+                                // FIXED: Use rid instead of fid to log verification properly
+                                psInsertEq.setString(1, rid);
+                                psInsertEq.setString(2, doEmail);
+                                psInsertEq.setString(3, fid);
+                                psInsertEq.setString(4, tkey);
+                                psInsertEq.setString(5, "Verified");
+                                psInsertEq.setString(6, dcEmail);
+                                psInsertEq.executeUpdate();
+                            }
+                        }
                     }
                 }
             }
-            rs2.close(); st2.close();
 
             if (matchCount > 0) {
                 pw.println("<script type=\"text/javascript\">");
@@ -192,7 +238,6 @@ public class SearchFile extends HttpServlet {
     // matchTrapdoor()
     // Simulates SCP Boolean equality check.
     // Decodes Base64 index and checks if keyword appears.
-    // Full system uses homomorphic comparison on Paillier ciphertext.
     // ─────────────────────────────────────────────────────────
     private boolean matchTrapdoor(String trap, String tkey,
                                    String encIndex, String keyword) {

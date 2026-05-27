@@ -86,7 +86,7 @@
   </div>
   <div class="nav-right">
     <div class="nav-user">Logged in as <span><%= pkgName %></span></div>
-    <a href="login.jsp" class="btn-logout">Logout</a>
+    <a href="LoginServlet?action=logout" class="btn-logout">Logout</a>
   </div>
 </nav>
 

@@ -3,15 +3,18 @@ package com.servlets;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+
+import com.dao.DBConnection;
+import com.dao.PortNumber;
 
 /**
  * GeneratePKDC
@@ -46,38 +49,55 @@ public class GeneratePKDC extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+                          HttpServletResponse response)
             throws ServletException, IOException {
 
         PrintWriter  pw      = response.getWriter();
-        HttpSession  session = request.getSession();
-
-        // DC email selected by PKG from the list
         String uid = request.getParameter("email");
 
         // Generate a new secret key for this DC
-        String sk = com.dao.PortNumber.getSk();
-        String mk = com.dao.PortNumber.getMk();
+        String sk = PortNumber.getSk();
+        String mk = PortNumber.getMk();
 
         System.out.println("[GeneratePKDC] Generating key for DC: " + uid);
 
-        Connection con = com.dao.DBConnection.connect();
+        Connection con = DBConnection.connect();
+        if (con == null) {
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Database connection failed.');");
+            pw.println("window.location='GeneratePKDC.jsp';</script>");
+            return;
+        }
 
         try {
             // Check if key already generated for this DC
-            String checkSql = "select * from keygen where uid='" + uid + "'";
-            if (com.dao.DBConnection.getData(checkSql)) {
+            String checkSql = "select id from keygen where uid=?";
+            boolean exists = false;
+            try (PreparedStatement psCheck = con.prepareStatement(checkSql)) {
+                psCheck.setString(1, uid);
+                try (ResultSet rs = psCheck.executeQuery()) {
+                    if (rs.next()) {
+                        exists = true;
+                    }
+                }
+            }
+
+            if (exists) {
                 pw.println("<script type=\"text/javascript\">");
                 pw.println("alert('Key already generated for DC: " + uid + "');");
                 pw.println("window.location='GeneratePKDC.jsp';</script>");
             } else {
                 // Insert new key into keygen table
-                Statement st = con.createStatement();
-                int i = st.executeUpdate(
-                    "insert into keygen(sk, mk, uid) values('"
-                    + sk + "','" + mk + "','" + uid + "')");
+                String insertSql = "insert into keygen(sk, mk, uid) values(?,?,?)";
+                int rows = 0;
+                try (PreparedStatement psInsert = con.prepareStatement(insertSql)) {
+                    psInsert.setString(1, sk);
+                    psInsert.setString(2, mk);
+                    psInsert.setString(3, uid);
+                    rows = psInsert.executeUpdate();
+                }
 
-                if (i > 0) {
+                if (rows > 0) {
                     pw.println("<script type=\"text/javascript\">");
                     pw.println("alert('Secret Key generated for DC (" + uid + ") successfully!');");
                     pw.println("window.location='GeneratePKDC.jsp';</script>");
@@ -93,7 +113,7 @@ public class GeneratePKDC extends HttpServlet {
             pw.println("alert('Database error: " + e.getMessage() + "');");
             pw.println("window.location='GeneratePKDC.jsp';</script>");
         } finally {
-            try { if (con != null) con.close(); } catch (SQLException ignored) {}
+            try { con.close(); } catch (SQLException ignored) {}
         }
     }
 

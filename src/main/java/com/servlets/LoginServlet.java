@@ -2,6 +2,10 @@ package com.servlets;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -20,6 +24,9 @@ import com.dao.DBConnection;
  *   - dataconsumer → DCHome.jsp   (must be Approved in dcregister)
  *   - pkg          → PKGHome.jsp
  *
+ * Support for GET logout:
+ *   - /LoginServlet?action=logout → invalidates session and redirects
+ *
  * Form fields expected:
  *   role, email, password
  *
@@ -34,18 +41,27 @@ public class LoginServlet extends HttpServlet {
         super();
     }
 
-    /** GET — just redirect to login page */
+    /** GET — handles logout or redirects to login page */
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response)
             throws ServletException, IOException {
+        String action = request.getParameter("action");
+        if ("logout".equalsIgnoreCase(action)) {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
+            response.sendRedirect("login.jsp");
+            return;
+        }
         response.sendRedirect("login.jsp");
     }
 
     /** POST — validate credentials, create session, redirect */
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+                           HttpServletResponse response)
             throws ServletException, IOException {
 
         response.setContentType("text/html;charset=UTF-8");
@@ -62,84 +78,116 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
-        HttpSession session = request.getSession();
+        HttpSession session = request.getSession(true);
         boolean valid       = false;
         String  redirect    = "login.jsp";
+        String  name        = "";
 
-        switch (role.trim().toLowerCase()) {
+        Connection con = DBConnection.connect();
+        if (con == null) {
+            sendAlert(pw, "Database connection failed. Please contact administrator.", "login.jsp");
+            return;
+        }
 
-            // ── Admin / Cloud Server ──────────────────────────────
-            case "admin": {
-                String sql = "select * from cloudserver where email='" + email
-                           + "' and password='" + password + "'";
-                valid = DBConnection.getData(sql);
-                if (valid) {
-                    session.setAttribute("csemail", email);
-                    String name = DBConnection.getName(
-                        "select name from cloudserver where email='" + email + "'");
-                    session.setAttribute("csname", name);
-                    redirect = "CSHome.jsp";
+        try {
+            switch (role.trim().toLowerCase()) {
+
+                // ── Admin / Cloud Server ──────────────────────────────
+                case "admin": {
+                    String sql = "select name from cloudserver where email=? and password=?";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setString(1, email);
+                        ps.setString(2, password);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                valid = true;
+                                name = rs.getString("name");
+                                session.setAttribute("csemail", email);
+                                session.setAttribute("csname", name);
+                                redirect = "CSHome.jsp";
+                            }
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
 
-            // ── Data Owner ────────────────────────────────────────
-            case "dataowner": {
-                // Only Approved accounts can login (matches original DOLogin.java logic)
-                String sql = "select * from doregister where email='" + email
-                           + "' and password='" + password + "' and status1='Approved'";
-                valid = DBConnection.getData(sql);
-                if (valid) {
-                    session.setAttribute("email", email);
-                    String name = DBConnection.getName(
-                        "select name from doregister where email='" + email + "'");
-                    session.setAttribute("name", name);
-                    redirect = "DOHome.jsp";
+                // ── Data Owner ────────────────────────────────────────
+                case "dataowner": {
+                    // Only Approved accounts can login
+                    String sql = "select name from doregister where email=? and password=? and status1='Approved'";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setString(1, email);
+                        ps.setString(2, password);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                valid = true;
+                                name = rs.getString("name");
+                                session.setAttribute("email", email);
+                                session.setAttribute("name", name);
+                                redirect = "DOHome.jsp";
+                            }
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
 
-            // ── Data Consumer ─────────────────────────────────────
-            case "dataconsumer": {
-                String sql = "select * from dcregister where email='" + email
-                           + "' and password='" + password + "' and status='Approved'";
-                valid = DBConnection.getData(sql);
-                if (valid) {
-                    session.setAttribute("dcemail", email);
-                    String name = DBConnection.getName(
-                        "select name from dcregister where email='" + email + "'");
-                    session.setAttribute("dcname", name);
-                    redirect = "DCHome.jsp";
+                // ── Data Consumer ─────────────────────────────────────
+                case "dataconsumer": {
+                    // Only Approved accounts can login
+                    String sql = "select name from dcregister where email=? and password=? and status='Approved'";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setString(1, email);
+                        ps.setString(2, password);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                valid = true;
+                                name = rs.getString("name");
+                                session.setAttribute("dcemail", email);
+                                session.setAttribute("dcname", name);
+                                redirect = "DCHome.jsp";
+                            }
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
 
-            // ── Private Key Generator ─────────────────────────────
-            case "pkg": {
-                String sql = "select * from pkg where email='" + email
-                           + "' and password='" + password + "'";
-                valid = DBConnection.getData(sql);
-                if (valid) {
-                    session.setAttribute("pkgemail", email);
-                    String name = DBConnection.getName(
-                        "select name from pkg where email='" + email + "'");
-                    session.setAttribute("pkgname", name);
-                    redirect = "PKGHome.jsp";
+                // ── Private Key Generator ─────────────────────────────
+                case "pkg": {
+                    String sql = "select name from pkg where email=? and password=?";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setString(1, email);
+                        ps.setString(2, password);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                valid = true;
+                                name = rs.getString("name");
+                                session.setAttribute("pkgemail", email);
+                                session.setAttribute("pkgname", name);
+                                redirect = "PKGHome.jsp";
+                            }
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
 
-            default: {
-                sendAlert(pw, "Invalid role selected.", "login.jsp");
-                return;
+                default: {
+                    sendAlert(pw, "Invalid role selected.", "login.jsp");
+                    return;
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            sendAlert(pw, "Database error: " + e.getMessage(), "login.jsp");
+            return;
+        } finally {
+            try { con.close(); } catch (SQLException ignored) {}
         }
 
         if (valid) {
             session.setAttribute("role", role);
             response.sendRedirect(redirect);
         } else {
-            sendAlert(pw, "Invalid credentials or account not yet approved.", "login.jsp");
+            sendAlert(pw, "Invalid credentials or account not yet approved by Admin.", "login.jsp");
         }
     }
 

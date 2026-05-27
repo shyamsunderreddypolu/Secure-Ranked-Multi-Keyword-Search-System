@@ -81,7 +81,7 @@
   </div>
   <div class="nav-right">
     <div class="nav-user">Logged in as <span><%= dcName %></span></div>
-    <a href="DCLogin.jsp" class="btn-logout">Logout</a>
+    <a href="LoginServlet?action=logout" class="btn-logout">Logout</a>
   </div>
 </nav>
 

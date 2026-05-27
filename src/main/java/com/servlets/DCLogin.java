@@ -50,16 +50,37 @@ public class DCLogin extends HttpServlet {
         String uid      = request.getParameter("email");
         String pwd      = request.getParameter("password");
 
-        String sql = "select * from dcregister where email='" + uid
-                   + "' and password='" + pwd + "' and status='Approved'";
-        boolean b  = DBConnection.getData(sql);
+        java.sql.Connection con = DBConnection.connect();
+        if (con == null) {
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Database connection failed.');");
+            pw.println("window.location='DCLogin.jsp';</script>");
+            return;
+        }
+
+        boolean valid = false;
+        String name   = "";
+
+        String sql = "select name from dcregister where email=? and password=? and status='Approved'";
+        try (java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, uid);
+            ps.setString(2, pwd);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    valid = true;
+                    name  = rs.getString("name");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { con.close(); } catch (java.sql.SQLException ignored) {}
+        }
 
         HttpSession session = request.getSession();
 
-        if (b == true) {
+        if (valid) {
             session.setAttribute("dcemail", uid);
-            String name = DBConnection.getName(
-                "select name from dcregister where email='" + uid + "'");
             session.setAttribute("dcname", name);
             response.sendRedirect("DCHome.jsp");
         } else {

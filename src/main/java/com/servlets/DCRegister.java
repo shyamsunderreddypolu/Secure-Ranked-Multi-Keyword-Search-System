@@ -54,19 +54,32 @@ public class DCRegister extends HttpServlet {
         String mobile   = request.getParameter("mobile");
         String address  = request.getParameter("address");
 
-        // Check duplicate email
-        if (DBConnection.getData(
-                "select * from dcregister where email='" + email + "'")) {
-            pw.println("<script type=\"text/javascript\">");
-            pw.println("alert('Email already registered. Please login.');");
-            pw.println("window.location='DCRegister.jsp';</script>");
-            return;
-        }
-
         Connection con = DBConnection.connect();
         if (con == null) {
             pw.println("<script>alert('Database connection failed.');"
                      + "window.location='DCRegister.jsp';</script>");
+            return;
+        }
+
+        // Check duplicate email
+        boolean exists = false;
+        String checkSql = "select 1 from dcregister where email=?";
+        try (PreparedStatement ps = con.prepareStatement(checkSql)) {
+            ps.setString(1, email);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    exists = true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (exists) {
+            try { con.close(); } catch (SQLException ignored) {}
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Email already registered. Please login.');");
+            pw.println("window.location='DCRegister.jsp';</script>");
             return;
         }
 

@@ -1,10 +1,9 @@
 package com.servlets;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -45,21 +44,28 @@ public class DCDecryptRequest extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+                          HttpServletResponse response)
             throws ServletException, IOException {
 
-        PrintWriter o   = response.getWriter();
-        String email    = request.getParameter("uid");
+        String email = request.getParameter("uid");
+        String fid   = request.getParameter("fid");
 
-        Connection con  = DBConnection.connect();
-        try {
-            Statement st = con.createStatement();
-            int i = st.executeUpdate(
-                "update keyreq set status1='Approved' where uid='" + email + "'");
-            response.sendRedirect("DCDecryptRequest.jsp");
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (email != null && fid != null) {
+            Connection con = DBConnection.connect();
+            if (con != null) {
+                String sql = "update keyreq set status1='Approved' where uid=? and fid=?";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, email);
+                    ps.setString(2, fid);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    try { con.close(); } catch (SQLException ignored) {}
+                }
+            }
         }
+        response.sendRedirect("DCDecryptRequest.jsp");
     }
 
     @Override
