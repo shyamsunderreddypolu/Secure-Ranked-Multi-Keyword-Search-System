@@ -31,7 +31,7 @@ import com.beans.UserKeyBean;
  */
 public class DBConnection {
 
-    private static final String DRIVER      = "com.mysql.jdbc.Driver";
+    private static final String DRIVER      = "com.mysql.cj.jdbc.Driver";
     private static final String DB_URL      = "jdbc:mysql://localhost:3306/securerank_db";
     private static final String DB_USER     = "root";
     private static final String DB_PASSWORD = "root";

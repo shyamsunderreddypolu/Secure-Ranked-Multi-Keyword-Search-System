@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Secure Ranked Multi Keyword Search System over Encrypted Cloud Data</name>
+	<name>SecureRank</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -30,7 +30,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1778926374630</id>
+			<id>1782054218522</id>
 			<name></name>
 			<type>30</type>
 			<matcher>
