@@ -12,7 +12,7 @@
     try {
         st = con.createStatement();
         rs = st.executeQuery(
-            "select Fid, Email, Filename, Label, Content, Tkey, upload_time from upload order by Fid desc");
+            "select Fid, Email, Filename, Label, Content, Tkey from upload order by Fid desc");
     } catch (Exception e) { e.printStackTrace(); }
 %>
 <!DOCTYPE html>
@@ -90,7 +90,7 @@
               String filename = rs.getString("Filename");
               String label    = rs.getString("Label");
               String tkey     = rs.getString("Tkey");
-              String upTime   = rs.getString("upload_time");
+              String upTime   = "N/A";
         %>
         <tr>
           <td class="mono"><%= fid %></td>

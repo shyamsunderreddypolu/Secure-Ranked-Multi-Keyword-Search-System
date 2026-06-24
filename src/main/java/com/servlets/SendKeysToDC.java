@@ -48,6 +48,12 @@ public class SendKeysToDC extends HttpServlet {
             throws ServletException, IOException {
 
         PrintWriter o = response.getWriter();
+        javax.servlet.http.HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("pkgemail") == null) {
+            o.println("<script>alert('Session expired or access denied.');"
+                     + "window.location='login.jsp';</script>");
+            return;
+        }
 
         String fid  = request.getParameter("fid");
         String uid  = request.getParameter("uid");

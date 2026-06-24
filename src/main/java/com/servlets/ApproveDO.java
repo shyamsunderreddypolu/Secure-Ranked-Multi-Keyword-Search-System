@@ -39,6 +39,12 @@ public class ApproveDO extends HttpServlet {
                          HttpServletResponse response)
             throws ServletException, IOException {
 
+        javax.servlet.http.HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("csemail") == null) {
+            response.sendRedirect("CloudControllerLogin.jsp");
+            return;
+        }
+
         String email  = request.getParameter("email");
         String action = request.getParameter("action"); // approve / reject
 

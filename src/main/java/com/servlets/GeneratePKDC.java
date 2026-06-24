@@ -53,6 +53,13 @@ public class GeneratePKDC extends HttpServlet {
             throws ServletException, IOException {
 
         PrintWriter  pw      = response.getWriter();
+        javax.servlet.http.HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("pkgemail") == null) {
+            pw.println("<script>alert('Session expired or access denied.');"
+                     + "window.location='login.jsp';</script>");
+            return;
+        }
+
         String uid = request.getParameter("email");
 
         // Generate a new secret key for this DC

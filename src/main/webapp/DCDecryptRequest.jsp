@@ -9,6 +9,7 @@
     Connection con = com.dao.DBConnection.connect();
     ResultSet  rs  = null;
     Statement  st  = null;
+    Statement  stFallback = null;
     try {
         st = con.createStatement();
         rs = st.executeQuery(
@@ -18,7 +19,8 @@
           + "order by k.id desc");
     } catch (Exception e) {
         try {
-            rs = con.createStatement().executeQuery(
+            stFallback = con.createStatement();
+            rs = stFallback.executeQuery(
                 "select id, uid, fid, status1 from keyreq order by id desc");
         } catch (Exception ex) { ex.printStackTrace(); }
     }
@@ -127,6 +129,6 @@
     </table>
   </div>
 </div>
-<% try{if(rs!=null)rs.close();}catch(Exception e){} try{if(st!=null)st.close();}catch(Exception e){} try{if(con!=null)con.close();}catch(Exception e){} %>
+<% try{if(rs!=null)rs.close();}catch(Exception e){} try{if(st!=null)st.close();}catch(Exception e){} try{if(stFallback!=null)stFallback.close();}catch(Exception e){} try{if(con!=null)con.close();}catch(Exception e){} %>
 </body>
 </html>

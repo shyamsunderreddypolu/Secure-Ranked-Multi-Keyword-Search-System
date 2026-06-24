@@ -15,7 +15,7 @@
     try {
         st = con.createStatement();
         rs = st.executeQuery(
-            "select Fid, Filename, Label, Tkey, upload_time from upload "
+            "select Fid, Filename, Label, Tkey from upload "
           + "where Email='" + doEmail + "' order by Fid desc");
     } catch (Exception e) { e.printStackTrace(); }
 %>
@@ -104,7 +104,7 @@
               String filename = rs.getString("Filename");
               String label    = rs.getString("Label");
               String tkey     = rs.getString("Tkey");
-              String upTime   = rs.getString("upload_time");
+              String upTime   = "N/A";
         %>
         <tr>
           <td class="mono"><%= fid %></td>

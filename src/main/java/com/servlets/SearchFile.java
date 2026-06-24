@@ -72,6 +72,18 @@ public class SearchFile extends HttpServlet {
         }
 
         try {
+            // ── Clear previous response and equality entries for this DC ──
+            String clearRes = "delete from response where recid=?";
+            try (PreparedStatement psClearRes = con.prepareStatement(clearRes)) {
+                psClearRes.setString(1, dcEmail);
+                psClearRes.executeUpdate();
+            }
+            String clearEq = "delete from equality where recid=?";
+            try (PreparedStatement psClearEq = con.prepareStatement(clearEq)) {
+                psClearEq.setString(1, dcEmail);
+                psClearEq.executeUpdate();
+            }
+
             // ── Step 1: Fetch trapdoor value for this keyword ──
             String trapSql = "select trap from trapdoor where name=? and uid=?";
             String trapValue = null;
@@ -107,10 +119,10 @@ public class SearchFile extends HttpServlet {
                     String tkey     = rs2.getString("Tkey");
                     String index    = rs2.getString("stringcontent");
 
-                    // ── Equality check (SCP Boolean verification) ──
-                    boolean matched = matchTrapdoor(trapValue, tkey, index, keyword);
+                    // ── Calculate TF-IDF Score ──
+                    double score = calculateScore(index, keyword);
 
-                    if (matched) {
+                    if (score > 0.0) {
                         matchCount++;
 
                         // ── Insert into request table ──────────────
@@ -150,7 +162,7 @@ public class SearchFile extends HttpServlet {
                             }
                         }
 
-                        // ── Insert into response table ─────────────
+                        // ── Insert into response table with score ──
                         String checkRes = "select Rid from response where uid=? and fid=? and recid=?";
                         boolean resExists = false;
                         try (PreparedStatement psCheckRes = con.prepareStatement(checkRes)) {
@@ -165,18 +177,19 @@ public class SearchFile extends HttpServlet {
                         }
 
                         if (!resExists && !rid.isEmpty()) {
-                            String insertRes = "insert into response(Rid, uid, fid, TKey, recid) values(?,?,?,?,?)";
+                            String insertRes = "insert into response(Rid, uid, fid, TKey, recid, score) values(?,?,?,?,?,?)";
                             try (PreparedStatement psInsertRes = con.prepareStatement(insertRes)) {
                                 psInsertRes.setString(1, rid);
                                 psInsertRes.setString(2, doEmail);
                                 psInsertRes.setString(3, fid);
                                 psInsertRes.setString(4, tkey);
                                 psInsertRes.setString(5, dcEmail);
+                                psInsertRes.setDouble(6, score);
                                 psInsertRes.executeUpdate();
                             }
                         }
 
-                        // ── Insert into equality (SCP verification) table
+                        // ── Insert into equality (SCP verification) table ──
                         String checkEq = "select Rid from equality where Uid=? and Fid=? and recid=?";
                         boolean eqExists = false;
                         try (PreparedStatement psCheckEq = con.prepareStatement(checkEq)) {
@@ -193,7 +206,6 @@ public class SearchFile extends HttpServlet {
                         if (!eqExists && !rid.isEmpty()) {
                             String insertEq = "insert into equality(Rid, Uid, Fid, Tkey, Status, recid) values(?,?,?,?,?,?)";
                             try (PreparedStatement psInsertEq = con.prepareStatement(insertEq)) {
-                                // FIXED: Use rid instead of fid to log verification properly
                                 psInsertEq.setString(1, rid);
                                 psInsertEq.setString(2, doEmail);
                                 psInsertEq.setString(3, fid);
@@ -235,21 +247,39 @@ public class SearchFile extends HttpServlet {
     }
 
     // ─────────────────────────────────────────────────────────
-    // matchTrapdoor()
-    // Simulates SCP Boolean equality check.
-    // Decodes Base64 index and checks if keyword appears.
+    // calculateScore()
+    // Splits index, cleans keywords, matches search term(s) 
+    // and returns the total TF-IDF relevance score (0.0 if no match).
     // ─────────────────────────────────────────────────────────
-    private boolean matchTrapdoor(String trap, String tkey,
-                                   String encIndex, String keyword) {
+    private double calculateScore(String encIndex, String keyword) {
         try {
-            if (encIndex == null) return false;
+            if (encIndex == null || keyword == null || encIndex.isEmpty() || keyword.isEmpty()) {
+                return 0.0;
+            }
             // Decode Base64 TF-IDF index
-            String decoded = new String(
-                java.util.Base64.getDecoder().decode(encIndex));
-            // Check if keyword exists in decoded index
-            return decoded.toLowerCase().contains(keyword.toLowerCase());
+            String decoded = new String(java.util.Base64.getDecoder().decode(encIndex));
+            String[] searchWords = keyword.toLowerCase().split("\\s+");
+            double totalScore = 0.0;
+            boolean matchedAny = false;
+
+            String[] entries = decoded.split("\\|");
+            for (String entry : entries) {
+                String[] parts = entry.split(":");
+                if (parts.length >= 2) {
+                    String indexWord = parts[0].trim().toLowerCase();
+                    for (String w : searchWords) {
+                        w = w.replaceAll("[^a-z0-9]", "");
+                        if (!w.isEmpty() && indexWord.equals(w)) {
+                            totalScore += Double.parseDouble(parts[1].trim());
+                            matchedAny = true;
+                        }
+                    }
+                }
+            }
+            return matchedAny ? totalScore : 0.0;
         } catch (Exception e) {
-            return false;
+            e.printStackTrace();
         }
+        return 0.0;
     }
 }

@@ -97,7 +97,7 @@ public class LoginServlet extends HttpServlet {
                     String sql = "select name from cloudserver where email=? and password=?";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, email);
-                        ps.setString(2, password);
+                        ps.setString(2, com.dao.AESCrypto.hashPassword(password));
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) {
                                 valid = true;
@@ -117,7 +117,7 @@ public class LoginServlet extends HttpServlet {
                     String sql = "select name from doregister where email=? and password=? and status1='Approved'";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, email);
-                        ps.setString(2, password);
+                        ps.setString(2, com.dao.AESCrypto.hashPassword(password));
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) {
                                 valid = true;
@@ -137,7 +137,7 @@ public class LoginServlet extends HttpServlet {
                     String sql = "select name from dcregister where email=? and password=? and status='Approved'";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, email);
-                        ps.setString(2, password);
+                        ps.setString(2, com.dao.AESCrypto.hashPassword(password));
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) {
                                 valid = true;
@@ -156,7 +156,7 @@ public class LoginServlet extends HttpServlet {
                     String sql = "select name from pkg where email=? and password=?";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, email);
-                        ps.setString(2, password);
+                        ps.setString(2, com.dao.AESCrypto.hashPassword(password));
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) {
                                 valid = true;

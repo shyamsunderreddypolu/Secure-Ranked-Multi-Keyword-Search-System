@@ -58,8 +58,8 @@ CREATE TABLE `doregister` (
 
 INSERT INTO `doregister` (`name`, `email`, `password`, `mobile`, `address`, `status1`)
 VALUES
-  ('Alice Thomas', 'alice@securerank.com', 'Alice@123', '9876500001', 'Hyderabad, Telangana', 'Approved'),
-  ('Ravi Kumar',   'ravi@securerank.com',  'Ravi@123',  '9876500004', 'Warangal, Telangana',  'Pending');
+  ('Alice Thomas', 'alice@securerank.com', '3d5e9ac865d0e0ec9a56fa0f8739772b001269721c5776eb4dfe25c1eab1919f', '9876500001', 'Hyderabad, Telangana', 'Approved'),
+  ('Ravi Kumar',   'ravi@securerank.com',  'a01649699f5501489183d6c9b83d503699fe17329dcfc733f52d83aa58befcfc',  '9876500004', 'Warangal, Telangana',  'Pending');
 
 
 -- ============================================================
@@ -84,9 +84,9 @@ CREATE TABLE `dcregister` (
 
 INSERT INTO `dcregister` (`name`, `email`, `password`, `mobile`, `address`, `status`)
 VALUES
-  ('Bob Kumar',   'bob@securerank.com',    'Bob@123',    '9876500002', 'Bangalore, Karnataka', 'Approved'),
-  ('Diana Reddy', 'diana@securerank.com',  'Diana@123',  '9876500003', 'Chennai, Tamil Nadu',  'Approved'),
-  ('Suresh Naik', 'suresh@securerank.com', 'Suresh@123', '9876500005', 'Pune, Maharashtra',    'Pending');
+  ('Bob Kumar',   'bob@securerank.com',    'fc6e5ceb0061b7059f2d38619c03c7b2f4f1ca6e0d29be5b2c0ea7f7d903c197',    '9876500002', 'Bangalore, Karnataka', 'Approved'),
+  ('Diana Reddy', 'diana@securerank.com',  '2f48046cc6dbd310f68ee889d57f3be52ea2e033da0ff9426033df7edfcac25a',  '9876500003', 'Chennai, Tamil Nadu',  'Approved'),
+  ('Suresh Naik', 'suresh@securerank.com', 'f450e6e7633ac4514a77b6bec10abe3c34a3551b39338ab626ca825971bc4e16', '9876500005', 'Pune, Maharashtra',    'Pending');
 
 
 -- ============================================================
@@ -107,7 +107,7 @@ CREATE TABLE `cloudserver` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `cloudserver` (`name`, `email`, `password`)
-VALUES ('Admin', 'admin@securerank.com', 'admin123');
+VALUES ('Admin', 'admin@securerank.com', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9');
 
 
 -- ============================================================
@@ -128,7 +128,7 @@ CREATE TABLE `pkg` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `pkg` (`name`, `email`, `password`)
-VALUES ('PKG Admin', 'pkg@securerank.com', 'pkg123');
+VALUES ('PKG Admin', 'pkg@securerank.com', '741d2c592e75c05afcfb5b4f3662ddde2919e3e8209e0b86239381d2321f432c');
 
 
 -- ============================================================
@@ -253,6 +253,7 @@ CREATE TABLE `response` (
     `fid`   VARCHAR(255)  DEFAULT NULL COMMENT 'Matched file ID',
     `TKey`  VARCHAR(255)  DEFAULT NULL COMMENT 'Trapdoor key used for matching',
     `recid` VARCHAR(1000) DEFAULT NULL COMMENT 'DC email receiving this result',
+    `score` DOUBLE        DEFAULT 0.0 COMMENT 'TF-IDF relevance score',
     PRIMARY KEY (`Rid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

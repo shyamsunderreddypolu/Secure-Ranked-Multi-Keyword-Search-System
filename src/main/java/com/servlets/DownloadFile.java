@@ -166,14 +166,27 @@ public class DownloadFile extends HttpServlet {
                 return;
             }
 
+            // ── Step 4: Decrypt the file bytes using AES with the master key ──
+            byte[] decryptedBytes = null;
+            try {
+                decryptedBytes = com.dao.AESCrypto.decrypt(fileBytes, masterKey);
+            } catch (Exception e) {
+                e.printStackTrace();
+                response.setContentType("text/html;charset=UTF-8");
+                PrintWriter pw = response.getWriter();
+                pw.println("<script>alert('AES Decryption failed: " + e.getMessage().replace("'", "\\'") + "');"
+                         + "window.location='DCResults.jsp';</script>");
+                return;
+            }
+
             // Set dynamic content type and attachment headers to trigger browser download
             response.setContentType("application/octet-stream");
-            response.setContentLength(fileBytes.length);
+            response.setContentLength(decryptedBytes.length);
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-            // Write raw decrypted bytes directly to response stream
+            // Write decrypted bytes directly to response stream
             try (OutputStream os = response.getOutputStream()) {
-                os.write(fileBytes);
+                os.write(decryptedBytes);
                 os.flush();
             }
 

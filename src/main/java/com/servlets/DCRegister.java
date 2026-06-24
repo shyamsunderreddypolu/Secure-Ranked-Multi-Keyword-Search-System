@@ -88,7 +88,7 @@ public class DCRegister extends HttpServlet {
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, name);
             ps.setString(2, email);
-            ps.setString(3, pwd);
+            ps.setString(3, com.dao.AESCrypto.hashPassword(pwd));
             ps.setString(4, mobile  != null ? mobile  : "");
             ps.setString(5, address != null ? address : "");
             int i = ps.executeUpdate();

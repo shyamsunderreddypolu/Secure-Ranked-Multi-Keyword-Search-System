@@ -67,7 +67,7 @@ public class CloudControllerLogin extends HttpServlet {
         String sql = "select name from cloudserver where email=? and password=?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, email);
-            ps.setString(2, pwd);
+            ps.setString(2, com.dao.AESCrypto.hashPassword(pwd));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     valid = true;

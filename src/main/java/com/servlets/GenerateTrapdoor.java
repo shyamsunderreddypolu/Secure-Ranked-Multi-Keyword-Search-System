@@ -84,17 +84,7 @@ public class GenerateTrapdoor extends HttpServlet {
         String publicKey = RandomeString.getPublicKey();
         String trapdoor  = generateTrapdoor(keyword, publicKey);
 
-        // ── Check if trapdoor already generated for this keyword
-        String checkSql = "select * from trapdoor where name='" + keyword
-                        + "' and uid='" + uid + "'";
-        if (DBConnection.getData(checkSql)) {
-            pw.println("<script type=\"text/javascript\">");
-            pw.println("alert('Trapdoor already generated for keyword: " + keyword + "');");
-            pw.println("window.location='GenerateTrapdoor.jsp';</script>");
-            return;
-        }
-
-        // ── Insert trapdoor into DB ────────────────────────────
+        // ── Check database connection ──────────────────────────
         Connection con = DBConnection.connect();
         if (con == null) {
             pw.println("<script>alert('Database connection failed.');"
@@ -102,6 +92,29 @@ public class GenerateTrapdoor extends HttpServlet {
             return;
         }
 
+        boolean exists = false;
+        String checkSql = "select id from trapdoor where name=? and uid=?";
+        try (PreparedStatement psCheck = con.prepareStatement(checkSql)) {
+            psCheck.setString(1, keyword);
+            psCheck.setString(2, uid);
+            try (java.sql.ResultSet rs = psCheck.executeQuery()) {
+                if (rs.next()) {
+                    exists = true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (exists) {
+            try { con.close(); } catch (SQLException ignored) {}
+            pw.println("<script type=\"text/javascript\">");
+            pw.println("alert('Trapdoor already generated for keyword: " + keyword + "');");
+            pw.println("window.location='GenerateTrapdoor.jsp';</script>");
+            return;
+        }
+
+        // ── Insert trapdoor into DB ────────────────────────────
         String sql = "insert into trapdoor(name, uid, trap) values(?,?,?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, keyword);

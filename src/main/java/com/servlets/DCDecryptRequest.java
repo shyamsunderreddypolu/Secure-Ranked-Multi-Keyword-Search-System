@@ -47,6 +47,12 @@ public class DCDecryptRequest extends HttpServlet {
                           HttpServletResponse response)
             throws ServletException, IOException {
 
+        javax.servlet.http.HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("csemail") == null) {
+            response.sendRedirect("CloudControllerLogin.jsp");
+            return;
+        }
+
         String email = request.getParameter("uid");
         String fid   = request.getParameter("fid");
 

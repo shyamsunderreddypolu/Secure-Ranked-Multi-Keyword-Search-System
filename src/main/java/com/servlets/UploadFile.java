@@ -88,7 +88,16 @@ public class UploadFile extends HttpServlet {
         // ── Read uploaded file ─────────────────────────────────
         Part   filePart   = request.getPart("photo");
         String fileName   = getFileName(filePart);
-        byte[] fileBytes  = filePart.getInputStream().readAllBytes();
+        byte[] fileBytes;
+        try (InputStream is = filePart.getInputStream();
+             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                bos.write(buffer, 0, bytesRead);
+            }
+            fileBytes = bos.toByteArray();
+        }
 
         if (fileName == null || fileName.isEmpty()) {
             pw.println("<script>alert('Please select a file to upload.');"
@@ -107,12 +116,21 @@ public class UploadFile extends HttpServlet {
         // Each keyword from content is scored and encoded into the index
         String keywordIndex = buildKeywordIndex(content, publicKey);
 
-        // ── Generate Trapdoor Key (Tkey) ───────────────────────
-        // Tkey = used by Cloud Server to match trapdoors from DC
-        String tKey = PortNumber.getSk() + PortNumber.getMk();
-
-        // ── Generate Master Key (mk) for store table ───────────
+        // ── Generate Master Key (mk) and Secret Key (sk) ───────
         String mk = PortNumber.getMk();
+        String sk = PortNumber.getSk();
+        String tKey = sk + mk;
+
+        // ── Encrypt the uploaded file using AES with master key ──
+        byte[] encryptedFileBytes = null;
+        try {
+            encryptedFileBytes = com.dao.AESCrypto.encrypt(fileBytes, mk);
+        } catch (Exception e) {
+            e.printStackTrace();
+            pw.println("<script>alert('AES Encryption failed: " + e.getMessage().replace("'", "\\'") + "');"
+                     + "window.location='DOUpload.jsp';</script>");
+            return;
+        }
 
         // ── Insert into upload table ───────────────────────────
         Connection con = DBConnection.connect();
@@ -131,7 +149,7 @@ public class UploadFile extends HttpServlet {
 
             ps.setString(1, ownerEmail);
             ps.setString(2, fileName);
-            ps.setBytes (3, fileBytes);
+            ps.setBytes (3, encryptedFileBytes);
             ps.setString(4, label    != null ? label   : "General");
             ps.setString(5, encryptedContent);
             ps.setString(6, content  != null ? content : "");

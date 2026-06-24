@@ -13,18 +13,20 @@
     Connection con = com.dao.DBConnection.connect();
     ResultSet  rs  = null;
     Statement  st  = null;
+    Statement  stFallback = null;
     try {
         st = con.createStatement();
         rs = st.executeQuery(
             "select r.Rid, r.uid, r.fid, r.TKey, u.Filename, u.Label, u.Content "
           + "from response r join upload u on r.fid = u.Fid "
-          + "where r.recid='" + dcEmail + "' order by r.Rid desc");
+          + "where r.recid='" + dcEmail + "' order by r.score desc, r.Rid desc");
     } catch (Exception e) {
         // Fallback without join if column mismatch
         try {
-            rs = con.createStatement().executeQuery(
-                "select Rid, uid, fid, TKey, recid from response "
-              + "where recid='" + dcEmail + "' order by Rid desc");
+            stFallback = con.createStatement();
+            rs = stFallback.executeQuery(
+                "select Rid, uid, fid, TKey, recid, score from response "
+              + "where recid='" + dcEmail + "' order by score desc, Rid desc");
         } catch (Exception ex) { ex.printStackTrace(); }
     }
 %>
@@ -160,6 +162,7 @@
 <%
   try { if (rs  != null) rs.close();  } catch (Exception ignored) {}
   try { if (st  != null) st.close();  } catch (Exception ignored) {}
+  try { if (stFallback != null) stFallback.close(); } catch (Exception ignored) {}
   try { if (con != null) con.close(); } catch (Exception ignored) {}
 %>
 </body>

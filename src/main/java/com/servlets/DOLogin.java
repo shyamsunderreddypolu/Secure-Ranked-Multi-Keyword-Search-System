@@ -66,7 +66,7 @@ public class DOLogin extends HttpServlet {
         String sql = "select name from doregister where email=? and password=? and status1='Approved'";
         try (java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, uid);
-            ps.setString(2, pwd);
+            ps.setString(2, com.dao.AESCrypto.hashPassword(pwd));
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     valid = true;
