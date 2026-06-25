@@ -60,7 +60,7 @@
     .page-header h2 { font-size:20px; font-weight:600; }
     .page-header p  { font-size:13px; color:var(--text-muted); margin-top:4px; }
 
-    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:28px; }
+    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow-x:auto; margin-bottom:28px; }
     .table-top  { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
     .table-top-title { font-size:14px; font-weight:600; }
     .table-top-sub   { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
@@ -156,7 +156,7 @@
         %>
         <tr>
           <td class="mono"><%= fid %></td>
-          <td><strong><%= filename %></strong></td>
+          <td style="max-width: 240px; overflow-wrap: break-word; word-break: break-all;"><strong><%= filename %></strong></td>
           <td class="mono"><%= doEmail %></td>
           <td><span class="label-badge"><%= label != null ? label : "—" %></span></td>
           <td>
