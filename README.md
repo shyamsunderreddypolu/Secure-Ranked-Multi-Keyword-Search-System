@@ -87,13 +87,13 @@ SecureRank adopts a multi-entity federated security architecture. Key generation
 
 ```mermaid
 graph TD
-    User([User]) ──> DO[Data Owner]
-    DO ──> Encryption[Encryption Engine]
-    Encryption ──> CS[Cloud Server]
-    CS ──> SI[Secure Index]
-    SI ──> Trapdoor[Trapdoor Generator]
-    Trapdoor ──> RS[Ranked Search]
-    RS ──> DC[Authorized Data Consumer]
+    User([User]) --> DO[Data Owner]
+    DO --> Encryption[Encryption Engine]
+    Encryption --> CS[Cloud Server]
+    CS --> SI[Secure Index]
+    SI --> Trapdoor[Trapdoor Generator]
+    Trapdoor --> RS[Ranked Search]
+    RS --> DC[Authorized Data Consumer]
     
     style User fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
     style DO fill:#fef9c3,stroke:#ca8a04,stroke-width:2px;
