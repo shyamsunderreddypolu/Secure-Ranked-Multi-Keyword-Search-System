@@ -394,7 +394,7 @@
       Secure Multi-Keyword Search <br><span>over Encrypted Cloud Data</span>
     </h1>
     <p class="hero-subtitle">
-      A placement-ready SaaS security system protecting data privacy in outsourced cloud databases.
+      An enterprise-grade SaaS platform protecting data privacy in outsourced cloud databases.
       Search through fully encrypted records using Boolean trapdoors with TF-IDF relevance ranking.
     </p>
     <div class="hero-actions">
@@ -751,7 +751,6 @@
         <h4>Developer Info</h4>
         <p style="font-weight: 600; color: var(--text-main);">POLU SHYAM SUNDER REDDY</p>
         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Full Stack Java Developer</p>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">GNI (Guru Nanak Institutions)</p>
         <p style="margin-top: 10px; font-size: 13px;">
           <a href="https://github.com/shyamsunderpolu" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
             <i class="bi bi-github"></i> GitHub Profile
