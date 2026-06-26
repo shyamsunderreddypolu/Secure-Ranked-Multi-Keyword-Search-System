@@ -1,58 +1,214 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="javax.servlet.http.HttpSession,java.sql.*" %>
+<%@ page import="javax.servlet.http.HttpSession, java.sql.*" %>
 <%
-    HttpSession s=request.getSession(false);
-    if(s==null||s.getAttribute("csemail")==null){response.sendRedirect("CloudControllerLogin.jsp");return;}
-    Connection con=com.dao.DBConnection.connect();
-    ResultSet rs=null;Statement st=null;
-    try{st=con.createStatement();rs=st.executeQuery("select Rid,uid,fid,Receiver,Status from request order by Rid desc");}catch(Exception e){e.printStackTrace();}
+    HttpSession s = request.getSession(false);
+    if (s == null || s.getAttribute("csemail") == null) {
+        response.sendRedirect("login.jsp?role=admin");
+        return;
+    }
+    String csName  = (String) s.getAttribute("csname");
+    String csEmail = (String) s.getAttribute("csemail");
+
+    Connection con = null;
+    ResultSet  rs  = null;
+    Statement  st  = null;
+    int pendingDO = 0, pendingDC = 0;
+    try {
+        con = com.dao.DBConnection.connect();
+        st = con.createStatement();
+        
+        // Fetch counts for badges
+        Statement stCount = con.createStatement();
+        ResultSet rsCount = stCount.executeQuery("select count(*) from doregister where status1='Pending'");
+        if (rsCount.next()) pendingDO = rsCount.getInt(1);
+        rsCount.close();
+        rsCount = stCount.executeQuery("select count(*) from dcregister where status='Pending'");
+        if (rsCount.next()) pendingDC = rsCount.getInt(1);
+        rsCount.close();
+        stCount.close();
+
+        // Query search requests log
+        rs = st.executeQuery("select Rid,uid,fid,Receiver,Status from request order by Rid desc");
+    } catch (Exception e) { 
+        e.printStackTrace(); 
+    }
 %>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Search Requests — SecureRank</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--c:#534AB7;--cl:#EEEDFE;--border:rgba(0,0,0,0.09);--white:#fff;--gray:#F7F6F3;--muted:#5F5E5A;--faint:#A0A09A;--r:10px;--rl:14px}
-body{font-family:'DM Sans',sans-serif;background:var(--gray)}
-nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.nt{font-size:15px;font-weight:600}.ns{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
-.bb{font-size:12px;padding:6px 14px;background:var(--gray);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--muted)}
-.bb:hover{border-color:var(--c);color:var(--c)}
-.pw{max-width:960px;margin:32px auto;padding:0 24px}
-.ph{margin-bottom:20px}.ph h2{font-size:20px;font-weight:600}.ph p{font-size:13px;color:var(--muted);margin-top:4px}
-.tc{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
-.tt{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
-.ttl{font-size:14px;font-weight:600}.tts{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
-table{width:100%;border-collapse:collapse}
-thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--faint);text-transform:uppercase;background:var(--gray);border-bottom:1px solid var(--border);letter-spacing:.05em}
-tbody tr{border-bottom:1px solid var(--border)}tbody tr:last-child{border-bottom:none}tbody tr:hover{background:#FAFAF8}
-tbody td{padding:12px 14px;font-size:13px;vertical-align:middle}
-.mono{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
-.sb{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;background:var(--cl);color:var(--c);font-weight:500}
-.er td{text-align:center;padding:40px;color:var(--faint)}
-</style></head><body>
-<nav>
-  <div><div class="nt">Search Activity</div><div class="ns">Admin · SecureRank</div></div>
-  <a href="CSHome.jsp" class="bb">← Dashboard</a>
-</nav>
-<div class="pw">
-  <div class="ph"><h2>Search Requests</h2><p>All search requests submitted by Data Consumers against the encrypted cloud index.</p></div>
-  <div class="tc">
-    <div class="tt"><div class="ttl">Request Log</div><div class="tts">request table</div></div>
-    <table>
-      <thead><tr><th>Req ID</th><th>Data Owner</th><th>File ID</th><th>Data Consumer</th><th>Status</th></tr></thead>
-      <tbody>
-        <%boolean hr=false;if(rs!=null){while(rs.next()){hr=true;%>
-        <tr>
-          <td class="mono"><%=rs.getString("Rid")%></td>
-          <td class="mono"><%=rs.getString("uid")%></td>
-          <td class="mono"><%=rs.getString("fid")%></td>
-          <td class="mono"><%=rs.getString("Receiver")%></td>
-          <td><span class="sb"><%=rs.getString("Status")%></span></td>
-        </tr>
-        <%}}if(!hr){%><tr class="er"><td colspan="5">No search requests yet.</td></tr><%}%>
-      </tbody>
-    </table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Activity — SecureRank Admin</title>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">Cloud Admin Panel</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="CSHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="ViewDOList.jsp" class="sidebar-link">
+            <i class="bi bi-people-fill"></i> Manage Owners
+            <% if (pendingDO > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDO %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewDCList.jsp" class="sidebar-link">
+            <i class="bi bi-people-fill"></i> Manage Consumers
+            <% if (pendingDC > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDC %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewUploadedFiles.jsp" class="sidebar-link">
+            <i class="bi bi-folder-fill"></i> View Encrypted Files
+          </a>
+        </li>
+        <li>
+          <a href="ViewSearchRequests.jsp" class="sidebar-link active">
+            <i class="bi bi-activity"></i> Search Activity
+          </a>
+        </li>
+        <li>
+          <a href="DCDecryptRequest.jsp" class="sidebar-link">
+            <i class="bi bi-key-fill"></i> Decrypt Requests
+          </a>
+        </li>
+        <li>
+          <a href="ViewEqualityCheck.jsp" class="sidebar-link">
+            <i class="bi bi-clipboard-check-fill"></i> Equality Verifications
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= csName != null && csName.length() > 0 ? csName.substring(0, Math.min(csName.length(), 2)).toUpperCase() : "AD" %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= csName %>"><%= csName != null ? csName : "Admin" %></div>
+          <div class="sidebar-user-role">Cloud Administrator</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Audit Search Logs</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= csEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Search Activity Log</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Track queries and retrieval status for search trapdoors submitted by Data Consumers against Encrypted Cloud Data.</p>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Recent Query Activity</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">Req ID</th>
+                <th>Data Owner</th>
+                <th style="width: 120px;">File ID</th>
+                <th>Data Consumer</th>
+                <th style="width: 180px; text-align: center;">Evaluation Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasRows = false;
+                if (rs != null) {
+                  while (rs.next()) {
+                    hasRows = true;
+                    String rid      = rs.getString("Rid");
+                    String uid      = rs.getString("uid");
+                    String fid      = rs.getString("fid");
+                    String receiver = rs.getString("Receiver");
+                    String status   = rs.getString("Status");
+              %>
+              <tr>
+                <td class="mono"><%= rid %></td>
+                <td class="mono" style="color: var(--text-muted);"><%= uid %></td>
+                <td class="mono"><strong><%= fid %></strong></td>
+                <td class="mono" style="color: var(--text-muted);"><%= receiver %></td>
+                <td style="text-align: center;">
+                  <% if ("Success".equalsIgnoreCase(status) || "Approved".equalsIgnoreCase(status) || "Verified".equalsIgnoreCase(status)) { %>
+                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> <%= status %></span>
+                  <% } else if ("Pending".equalsIgnoreCase(status)) { %>
+                    <span class="badge badge-warning"><i class="bi bi-clock-fill"></i> <%= status %></span>
+                  <% } else { %>
+                    <span class="badge badge-primary"><i class="bi bi-info-circle-fill"></i> <%= status %></span>
+                  <% } %>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasRows) {
+              %>
+              <tr class="empty-row">
+                <td colspan="5">
+                  <div style="text-align: center; padding: 40px; color: var(--text-faint);">
+                    <i class="bi bi-activity" style="font-size: 28px; margin-bottom: 8px; display: inline-block;"></i>
+                    <div style="font-weight: 500; color: var(--text-main);">No activity recorded</div>
+                    <div style="font-size: 12px; margin-top: 4px;">No trapdoor searches have been executed yet.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-</div>
-<%try{if(rs!=null)rs.close();}catch(Exception e){}try{if(st!=null)st.close();}catch(Exception e){}try{if(con!=null)con.close();}catch(Exception e){}%>
-</body></html>
+
+  <script src="js/theme.js"></script>
+</body>
+</html>
+<%
+  try { if (rs != null) rs.close(); } catch (Exception e) {}
+  try { if (st != null) st.close(); } catch (Exception e) {}
+  try { if (con != null) con.close(); } catch (Exception e) {}
+%>

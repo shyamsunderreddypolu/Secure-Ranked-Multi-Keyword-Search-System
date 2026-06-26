@@ -3,126 +3,224 @@
 <%
     HttpSession s = request.getSession(false);
     if (s == null || s.getAttribute("csemail") == null) {
-        response.sendRedirect("CloudControllerLogin.jsp");
+        response.sendRedirect("login.jsp?role=admin");
         return;
     }
-    Connection con = com.dao.DBConnection.connect();
+    String csName  = (String) s.getAttribute("csname");
+    String csEmail = (String) s.getAttribute("csemail");
+
+    Connection con = null;
     ResultSet  rs  = null;
     Statement  st  = null;
+    int pendingDO = 0, pendingDC = 0;
     try {
+        con = com.dao.DBConnection.connect();
         st = con.createStatement();
+        
+        // Fetch counts for badges
+        Statement stCount = con.createStatement();
+        ResultSet rsCount = stCount.executeQuery("select count(*) from doregister where status1='Pending'");
+        if (rsCount.next()) pendingDO = rsCount.getInt(1);
+        rsCount.close();
+        rsCount = stCount.executeQuery("select count(*) from dcregister where status='Pending'");
+        if (rsCount.next()) pendingDC = rsCount.getInt(1);
+        rsCount.close();
+        stCount.close();
+
+        // Query the registrations
         rs = st.executeQuery("select id,name,email,mobile,address,status1 from doregister order by id desc");
-    } catch (Exception e) { e.printStackTrace(); }
+    } catch (Exception e) { 
+        e.printStackTrace(); 
+    }
 %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Owner List — SecureRank Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --teal-mid:#0F6E56; --teal-bg:#E1F5EE; --teal-bdr:#A8DFC9;
-      --red-mid:#B91C1C; --red-bg:#FEEAEA;
-      --amber-bg:#FAEEDA; --amber-mid:#854F0B;
-      --text-main:#1A1A18; --text-muted:#5F5E5A; --text-faint:#A0A09A;
-      --border:rgba(0,0,0,0.09); --white:#fff; --gray-bg:#F7F6F3;
-      --radius-md:10px; --radius-lg:14px;
-    }
-    body  { font-family:'DM Sans',sans-serif; background:var(--gray-bg); }
-    nav   { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-title { font-size:15px; font-weight:600; }
-    .nav-sub   { font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    .btn-back  { font-size:12px; padding:6px 14px; background:var(--gray-bg); border:1px solid var(--border); border-radius:var(--radius-md); text-decoration:none; color:var(--text-muted); }
-    .btn-back:hover { border-color:var(--teal-mid); color:var(--teal-mid); }
-    .page-wrap { max-width:960px; margin:32px auto; padding:0 24px; }
-    .page-header { margin-bottom:20px; }
-    .page-header h2 { font-size:20px; font-weight:600; }
-    .page-header p  { font-size:13px; color:var(--text-muted); margin-top:4px; }
-    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
-    .table-top  { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-    .table-top-title { font-size:14px; font-weight:600; }
-    .table-top-sub   { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    table { width:100%; border-collapse:collapse; }
-    thead th { padding:10px 14px; text-align:left; font-size:11px; font-weight:500; color:var(--text-faint); text-transform:uppercase; background:var(--gray-bg); border-bottom:1px solid var(--border); letter-spacing:0.05em; }
-    tbody tr { border-bottom:1px solid var(--border); transition:background 0.12s; }
-    tbody tr:last-child { border-bottom:none; }
-    tbody tr:hover { background:#FAFAF8; }
-    tbody td { padding:12px 14px; font-size:13px; vertical-align:middle; }
-    .mono { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); }
-    .status-approved { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:var(--teal-bg);  color:var(--teal-mid);  font-weight:500; }
-    .status-pending  { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:var(--amber-bg); color:var(--amber-mid); font-weight:500; }
-    .status-rejected { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:var(--red-bg);   color:var(--red-mid);   font-weight:500; }
-    .btn-approve { font-size:11px; font-weight:500; padding:5px 12px; background:var(--teal-mid); color:#fff; border:none; border-radius:var(--radius-md); text-decoration:none; margin-right:4px; }
-    .btn-reject  { font-size:11px; font-weight:500; padding:5px 12px; background:var(--red-bg);  color:var(--red-mid); border:1px solid var(--red-mid); border-radius:var(--radius-md); text-decoration:none; }
-    .empty-row td { text-align:center; padding:40px; color:var(--text-faint); }
-  </style>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<nav>
-  <div>
-    <div class="nav-title">Data Owner Accounts</div>
-    <div class="nav-sub">Admin · SecureRank</div>
+
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">Cloud Admin Panel</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="CSHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="ViewDOList.jsp" class="sidebar-link active">
+            <i class="bi bi-people-fill"></i> Manage Owners
+            <% if (pendingDO > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDO %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewDCList.jsp" class="sidebar-link">
+            <i class="bi bi-people-fill"></i> Manage Consumers
+            <% if (pendingDC > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDC %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewUploadedFiles.jsp" class="sidebar-link">
+            <i class="bi bi-folder-fill"></i> View Encrypted Files
+          </a>
+        </li>
+        <li>
+          <a href="ViewSearchRequests.jsp" class="sidebar-link">
+            <i class="bi bi-activity"></i> Search Activity
+          </a>
+        </li>
+        <li>
+          <a href="DCDecryptRequest.jsp" class="sidebar-link">
+            <i class="bi bi-key-fill"></i> Decrypt Requests
+          </a>
+        </li>
+        <li>
+          <a href="ViewEqualityCheck.jsp" class="sidebar-link">
+            <i class="bi bi-clipboard-check-fill"></i> Equality Verifications
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= csName != null && csName.length() > 0 ? csName.substring(0, Math.min(csName.length(), 2)).toUpperCase() : "AD" %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= csName %>"><%= csName != null ? csName : "Admin" %></div>
+          <div class="sidebar-user-role">Cloud Administrator</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Manage Data Owners</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= csEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Data Owner Accounts</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Approve or reject Data Owner registrations. Only Approved DOs can login and upload files.</p>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">All Data Owner Registrations</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th style="width: 150px;">Status</th>
+                <th style="width: 220px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasRows = false; int cnt = 1;
+                if (rs != null) {
+                  while (rs.next()) {
+                    hasRows = true;
+                    String doName   = rs.getString("name");
+                    String doEmail  = rs.getString("email");
+                    String doMobile = rs.getString("mobile");
+                    String doStatus = rs.getString("status1");
+              %>
+              <tr>
+                <td class="mono"><%= cnt++ %></td>
+                <td><strong><%= doName %></strong></td>
+                <td class="mono" style="color: var(--text-muted);"><%= doEmail %></td>
+                <td class="mono"><%= doMobile != null && !doMobile.trim().isEmpty() ? doMobile : "—" %></td>
+                <td>
+                  <% if ("Approved".equals(doStatus)) { %>
+                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Approved</span>
+                  <% } else if ("Rejected".equals(doStatus)) { %>
+                    <span class="badge badge-danger"><i class="bi bi-x-circle-fill"></i> Rejected</span>
+                  <% } else { %>
+                    <span class="badge badge-warning"><i class="bi bi-clock-fill"></i> Pending</span>
+                  <% } %>
+                </td>
+                <td style="text-align: center;">
+                  <% if (!"Approved".equals(doStatus)) { %>
+                    <a href="ApproveDO?email=<%= doEmail %>&action=approve" class="btn btn-success btn-sm" style="margin-right: 4px;">
+                      <i class="bi bi-check-lg"></i> Approve
+                    </a>
+                  <% } %>
+                  <% if (!"Rejected".equals(doStatus)) { %>
+                    <a href="ApproveDO?email=<%= doEmail %>&action=reject" class="btn btn-danger btn-sm">
+                      <i class="bi bi-x-lg"></i> Reject
+                    </a>
+                  <% } %>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasRows) {
+              %>
+              <tr class="empty-row">
+                <td colspan="6">
+                  <div style="text-align: center; padding: 40px; color: var(--text-faint);">
+                    <i class="bi bi-people" style="font-size: 28px; margin-bottom: 8px; display: inline-block;"></i>
+                    <div style="font-weight: 500; color: var(--text-main);">No registrations found</div>
+                    <div style="font-size: 12px; margin-top: 4px;">No Data Owners have registered yet.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-  <a href="CSHome.jsp" class="btn-back">← Dashboard</a>
-</nav>
-<div class="page-wrap">
-  <div class="page-header">
-    <h2>Manage Data Owners</h2>
-    <p>Approve or reject Data Owner registrations. Only Approved DOs can login and upload files.</p>
-  </div>
-  <div class="table-card">
-    <div class="table-top">
-      <div class="table-top-title">All Data Owner Registrations</div>
-      <div class="table-top-sub">doregister table · status1</div>
-    </div>
-    <table>
-      <thead>
-        <tr><th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>Status</th><th>Action</th></tr>
-      </thead>
-      <tbody>
-        <%
-          boolean hasRows = false; int cnt = 1;
-          if (rs != null) {
-            while (rs.next()) {
-              hasRows = true;
-              String doName   = rs.getString("name");
-              String doEmail  = rs.getString("email");
-              String doMobile = rs.getString("mobile");
-              String doStatus = rs.getString("status1");
-        %>
-        <tr>
-          <td class="mono"><%= cnt++ %></td>
-          <td><strong><%= doName %></strong></td>
-          <td class="mono"><%= doEmail %></td>
-          <td class="mono"><%= doMobile != null ? doMobile : "—" %></td>
-          <td>
-            <% if ("Approved".equals(doStatus)) { %>
-              <span class="status-approved">Approved</span>
-            <% } else if ("Rejected".equals(doStatus)) { %>
-              <span class="status-rejected">Rejected</span>
-            <% } else { %>
-              <span class="status-pending">Pending</span>
-            <% } %>
-          </td>
-          <td>
-            <% if (!"Approved".equals(doStatus)) { %>
-              <a href="ApproveDO?email=<%= doEmail %>&action=approve" class="btn-approve">Approve</a>
-            <% } %>
-            <% if (!"Rejected".equals(doStatus)) { %>
-              <a href="ApproveDO?email=<%= doEmail %>&action=reject"  class="btn-reject">Reject</a>
-            <% } %>
-          </td>
-        </tr>
-        <%  } }
-          if (!hasRows) { %>
-        <tr class="empty-row"><td colspan="6">No Data Owners registered yet.</td></tr>
-        <% } %>
-      </tbody>
-    </table>
-  </div>
-</div>
-<% try{if(rs!=null)rs.close();}catch(Exception e){} try{if(st!=null)st.close();}catch(Exception e){} try{if(con!=null)con.close();}catch(Exception e){} %>
+
+  <script src="js/theme.js"></script>
 </body>
 </html>
+<%
+  try { if (rs != null) rs.close(); } catch (Exception e) {}
+  try { if (st != null) st.close(); } catch (Exception e) {}
+  try { if (con != null) con.close(); } catch (Exception e) {}
+%>

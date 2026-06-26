@@ -4,10 +4,11 @@
 <%
     HttpSession s = request.getSession(false);
     if (s == null || s.getAttribute("pkgemail") == null) {
-        response.sendRedirect("login.jsp");
+        response.sendRedirect("login.jsp?role=pkg");
         return;
     }
     String pkgName = (String) s.getAttribute("pkgname");
+    String pkgEmail = (String) s.getAttribute("pkgemail");
 
     // Load all uploaded files with owner info
     Connection con = com.dao.DBConnection.connect();
@@ -34,169 +35,201 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Send Master Key to DC — SecureRank PKG</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  
   <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --purple-mid:#534AB7; --purple-light:#EEEDFE; --purple-bdr:#C5C2F5;
-      --amber-bg:#FAEEDA; --amber-mid:#854F0B;
-      --teal-bg:#E1F5EE; --teal-mid:#0F6E56;
-      --text-main:#1A1A18; --text-muted:#5F5E5A; --text-faint:#A0A09A;
-      --border:rgba(0,0,0,0.09); --white:#ffffff; --gray-bg:#F7F6F3;
-      --radius-md:10px; --radius-lg:14px;
+    /* Custom select adjustments */
+    .dc-select {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      outline: none;
+      min-width: 200px;
+      font-family: inherit;
     }
-    body { font-family:'DM Sans',sans-serif; background:var(--gray-bg); color:var(--text-main); }
-    nav { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-left { display:flex; align-items:center; gap:10px; }
-    .nav-icon { width:36px; height:36px; background:var(--purple-mid); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
-    .nav-icon svg { width:18px; height:18px; }
-    .nav-title { font-size:15px; font-weight:600; }
-    .nav-sub   { font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    .btn-back  { font-size:12px; padding:6px 14px; background:var(--gray-bg); border:1px solid var(--border); border-radius:var(--radius-md); text-decoration:none; color:var(--text-muted); }
-    .btn-back:hover { border-color:var(--purple-mid); color:var(--purple-mid); }
-
-    .page-wrap { max-width:960px; margin:32px auto; padding:0 24px; }
-    .page-header { margin-bottom:24px; }
-    .page-header h2 { font-size:20px; font-weight:600; }
-    .page-header p  { font-size:13px; color:var(--text-muted); margin-top:4px; }
-
-    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow-x:auto; margin-bottom:28px; }
-    .table-top  { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-    .table-top-title { font-size:14px; font-weight:600; }
-    .table-top-sub   { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    table { width:100%; border-collapse:collapse; }
-    thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:500; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; background:var(--gray-bg); border-bottom:1px solid var(--border); }
-    tbody tr { border-bottom:1px solid var(--border); transition:background 0.12s; }
-    tbody tr:last-child { border-bottom:none; }
-    tbody tr:hover { background:#FAFAF8; }
-    tbody td { padding:12px 16px; font-size:13px; vertical-align:middle; }
-    .mono { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-muted); }
-    .label-badge { display:inline-block; font-size:11px; padding:2px 9px; border-radius:999px; background:var(--amber-bg); color:var(--amber-mid); font-weight:500; }
-
-    /* DC SELECT DROPDOWN */
-    .dc-select { padding:7px 10px; border:1px solid var(--border); border-radius:var(--radius-md); font-size:12px; font-family:'DM Sans',sans-serif; background:var(--gray-bg); color:var(--text-main); outline:none; min-width:160px; }
-    .dc-select:focus { border-color:var(--purple-mid); }
-
-    .btn-send {
-      font-size:12px; font-weight:500; background:var(--purple-mid);
-      color:#fff; border:none; padding:7px 16px;
-      border-radius:var(--radius-md); cursor:pointer;
-      font-family:'DM Sans',sans-serif; text-decoration:none;
-      transition:background 0.15s; white-space:nowrap;
+    .dc-select:focus {
+      border-color: var(--primary);
     }
-    .btn-send:hover { background:#2D2785; }
-    .empty-row td { text-align:center; padding:32px; color:var(--text-faint); font-size:13px; }
   </style>
 </head>
 <body>
 
-<nav>
-  <div class="nav-left">
-    <div class="nav-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#C5C2F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-    </div>
-    <div>
-      <div class="nav-title">Send Master Key to DC</div>
-      <div class="nav-sub">PKG Module · SecureRank</div>
-    </div>
-  </div>
-  <a href="PKGHome.jsp" class="btn-back">← Dashboard</a>
-</nav>
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">PKG Administrator</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="PKGHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="GeneratePKDC.jsp" class="sidebar-link">
+            <i class="bi bi-key-fill"></i> Generate Keys for DC
+          </a>
+        </li>
+        <li>
+          <a href="SendKeysToDC.jsp" class="sidebar-link active">
+            <i class="bi bi-send-fill"></i> Send Master Keys
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= pkgName.substring(0, Math.min(pkgName.length(), 2)).toUpperCase() %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= pkgName %>"><%= pkgName %></div>
+          <div class="sidebar-user-role">PKG Authority</div>
+        </div>
+      </div>
+    </aside>
 
-<div class="page-wrap">
-  <div class="page-header">
-    <h2>Send Master Key to Data Consumer</h2>
-    <p>Select a Data Consumer for each file and click Send Key. The DC will use this Master Key to decrypt the file after downloading from Cloud Server.</p>
-  </div>
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Distribute Decryption Keys</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= pkgEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Distribute Master Key (mk)</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Assign specific file decryption permissions to validated consumers. This transfers the required key parameters for ciphertext downloads.</p>
+        </div>
 
-  <%-- Build DC options once for reuse in every row --%>
-  <%
-    StringBuilder dcOptions = new StringBuilder();
-    dcOptions.append("<option value=''>-- Select DC --</option>");
-    if (rsDC != null) {
-      while (rsDC.next()) {
-        String dcName  = rsDC.getString("name");
-        String dcEmail = rsDC.getString("email");
-        dcOptions.append("<option value='").append(dcEmail).append("'>")
-                 .append(dcName).append(" (").append(dcEmail).append(")</option>");
-      }
-    }
-    String dcOpts = dcOptions.toString();
-  %>
-
-  <div class="table-card">
-    <div class="table-top">
-      <div class="table-top-title">Uploaded Encrypted Files</div>
-      <div class="table-top-sub">ukeys table · fid / doid / uid / key1</div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>File ID</th>
-          <th>File Name</th>
-          <th>Data Owner</th>
-          <th>Label</th>
-          <th>Select DC</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
+        <%-- Build DC options once for reuse in every row --%>
         <%
-          boolean hasFiles = false;
-          if (rsFiles != null) {
-            while (rsFiles.next()) {
-              hasFiles = true;
-              String fid       = rsFiles.getString("Fid");
-              String filename  = rsFiles.getString("Filename");
-              String doEmail   = rsFiles.getString("Email");
-              String label     = rsFiles.getString("Label");
-        %>
-        <tr>
-          <td class="mono"><%= fid %></td>
-          <td style="max-width: 240px; overflow-wrap: break-word; word-break: break-all;"><strong><%= filename %></strong></td>
-          <td class="mono"><%= doEmail %></td>
-          <td><span class="label-badge"><%= label != null ? label : "—" %></span></td>
-          <td>
-            <select class="dc-select" id="dc_<%= fid %>">
-              <%= dcOpts %>
-            </select>
-          </td>
-          <td>
-            <button class="btn-send"
-              onclick="sendKey('<%= fid %>','<%= doEmail %>')">
-              Send Key
-            </button>
-          </td>
-        </tr>
-        <%
+          StringBuilder dcOptions = new StringBuilder();
+          dcOptions.append("<option value=''>-- Select Consumer --</option>");
+          if (rsDC != null) {
+            while (rsDC.next()) {
+              String dcName  = rsDC.getString("name");
+              String dcEmail = rsDC.getString("email");
+              dcOptions.append("<option value='").append(dcEmail).append("'>")
+                       .append(dcName).append(" (").append(dcEmail).append(")</option>");
             }
           }
-          if (!hasFiles) {
+          String dcOpts = dcOptions.toString();
         %>
-        <tr class="empty-row">
-          <td colspan="6">No files uploaded yet. Data Owners must upload files first.</td>
-        </tr>
-        <% } %>
-      </tbody>
-    </table>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Uploaded Encrypted Repository</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">File ID</th>
+                <th>File Name</th>
+                <th>Data Owner</th>
+                <th style="width: 140px;">Classification</th>
+                <th>Select Consumer (DC)</th>
+                <th style="width: 150px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasFiles = false;
+                if (rsFiles != null) {
+                  while (rsFiles.next()) {
+                    hasFiles = true;
+                    String fid       = rsFiles.getString("Fid");
+                    String filename  = rsFiles.getString("Filename");
+                    String doEmail   = rsFiles.getString("Email");
+                    String label     = rsFiles.getString("Label");
+              %>
+              <tr>
+                <td class="mono"><%= fid %></td>
+                <td style="max-width: 200px; overflow-wrap: break-word; word-break: break-all;">
+                  <strong><%= filename %></strong>
+                </td>
+                <td class="mono" style="color: var(--text-muted);"><%= doEmail %></td>
+                <td>
+                  <span class="badge badge-warning"><%= label != null ? label : "—" %></span>
+                </td>
+                <td>
+                  <select class="dc-select" id="dc_<%= fid %>">
+                    <%= dcOpts %>
+                  </select>
+                </td>
+                <td style="text-align: center;">
+                  <button class="btn btn-primary btn-sm" onclick="sendKey('<%= fid %>','<%= doEmail %>')">
+                    <i class="bi bi-send-fill"></i> Send Key
+                  </button>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasFiles) {
+              %>
+              <tr class="empty-row">
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-folder-x"></i></div>
+                    <div class="empty-title">No files found</div>
+                    <div class="empty-desc">Data Owners must upload encrypted files to the server before keys can be distributed.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-</div>
 
-<script>
-  function sendKey(fid, doid) {
-    var sel = document.getElementById('dc_' + fid);
-    var uid = sel.value;
-    if (!uid) {
-      alert('Please select a Data Consumer first.');
-      return;
+  <script src="js/theme.js"></script>
+  <script>
+    function sendKey(fid, doid) {
+      var sel = document.getElementById('dc_' + fid);
+      var uid = sel.value;
+      if (!uid) {
+        showToast('Please select a Data Consumer first.', 'error');
+        return;
+      }
+      window.location = 'SendKeysToDC?fid=' + fid + '&uid=' + uid + '&doid=' + doid;
     }
-    window.location = 'SendKeysToDC?fid=' + fid + '&uid=' + uid + '&doid=' + doid;
-  }
-</script>
-
+  </script>
+</body>
+</html>
 <%
   try { if (rsFiles != null) rsFiles.close(); } catch (Exception ignored) {}
   try { if (rsDC   != null) rsDC.close();    } catch (Exception ignored) {}
@@ -204,5 +237,3 @@
   try { if (st2    != null) st2.close();     } catch (Exception ignored) {}
   try { if (con    != null) con.close();     } catch (Exception ignored) {}
 %>
-</body>
-</html>

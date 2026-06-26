@@ -1,59 +1,181 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="javax.servlet.http.HttpSession,java.sql.*" %>
+<%@ page import="javax.servlet.http.HttpSession, java.sql.*" %>
 <%
-    HttpSession s=request.getSession(false);
-    if(s==null||s.getAttribute("email")==null){response.sendRedirect("DOLogin.jsp");return;}
-    String doEmail=(String)s.getAttribute("email");
-    String doName=(String)s.getAttribute("name");
-    Connection con=com.dao.DBConnection.connect();
-    ResultSet rs=null;Statement st=null;
-    try{st=con.createStatement();rs=st.executeQuery("select Rid,fid,Receiver,Status from request where uid='"+doEmail+"' order by Rid desc");}catch(Exception e){e.printStackTrace();}
+    HttpSession s = request.getSession(false);
+    if (s == null || s.getAttribute("email") == null) {
+        response.sendRedirect("login.jsp?role=dataowner");
+        return;
+    }
+    String doEmail = (String) s.getAttribute("email");
+    String doName  = (String) s.getAttribute("name");
+
+    Connection con = null;
+    ResultSet  rs  = null;
+    Statement  st  = null;
+    try {
+        con = com.dao.DBConnection.connect();
+        st = con.createStatement();
+        rs = st.executeQuery("select Rid,fid,Receiver,Status from request where uid='" + doEmail + "' order by Rid desc");
+    } catch (Exception e) { 
+        e.printStackTrace(); 
+    }
 %>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Search Requests — SecureRank DO</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--c:#0F6E56;--cl:#E1F5EE;--border:rgba(0,0,0,0.09);--white:#fff;--gray:#F7F6F3;--muted:#5F5E5A;--faint:#A0A09A;--r:10px;--rl:14px}
-body{font-family:'DM Sans',sans-serif;background:var(--gray)}
-nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.nt{font-size:15px;font-weight:600}.ns{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
-.bb{font-size:12px;padding:6px 14px;background:var(--gray);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--muted)}
-.bb:hover{border-color:var(--c);color:var(--c)}
-.pw{max-width:860px;margin:32px auto;padding:0 24px}
-.ph{margin-bottom:20px}.ph h2{font-size:20px;font-weight:600}.ph p{font-size:13px;color:var(--muted);margin-top:4px}
-.tc{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
-.tt{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
-.ttl{font-size:14px;font-weight:600}.tts{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
-table{width:100%;border-collapse:collapse}
-thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--faint);text-transform:uppercase;background:var(--gray);border-bottom:1px solid var(--border);letter-spacing:.05em}
-tbody tr{border-bottom:1px solid var(--border)}tbody tr:last-child{border-bottom:none}tbody tr:hover{background:#FAFAF8}
-tbody td{padding:12px 14px;font-size:13px;vertical-align:middle}
-.mono{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
-.sb{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;background:var(--cl);color:var(--c);font-weight:500}
-.er td{text-align:center;padding:40px;color:var(--faint)}
-</style></head><body>
-<nav>
-  <div><div class="nt">Search Requests for My Files</div><div class="ns">Data Owner · <%=doName%></div></div>
-  <a href="DOHome.jsp" class="bb">← Dashboard</a>
-</nav>
-<div class="pw">
-  <div class="ph"><h2>DC Search Requests</h2><p>Data Consumers who have searched for your encrypted files using keyword trapdoors.</p></div>
-  <div class="tc">
-    <div class="tt"><div class="ttl">Incoming Search Requests</div><div class="tts">request table</div></div>
-    <table>
-      <thead><tr><th>Req ID</th><th>File ID</th><th>Data Consumer</th><th>Status</th></tr></thead>
-      <tbody>
-        <%boolean hr=false;if(rs!=null){while(rs.next()){hr=true;%>
-        <tr>
-          <td class="mono"><%=rs.getString("Rid")%></td>
-          <td class="mono"><%=rs.getString("fid")%></td>
-          <td class="mono"><%=rs.getString("Receiver")%></td>
-          <td><span class="sb"><%=rs.getString("Status")%></span></td>
-        </tr>
-        <%}}if(!hr){%><tr class="er"><td colspan="4">No search requests for your files yet.</td></tr><%}%>
-      </tbody>
-    </table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Requests — SecureRank DO</title>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">Data Owner Panel</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="DOHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="DOUpload.jsp" class="sidebar-link">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Upload File
+          </a>
+        </li>
+        <li>
+          <a href="ViewMyFiles.jsp" class="sidebar-link">
+            <i class="bi bi-folder-fill"></i> My Uploaded Files
+          </a>
+        </li>
+        <li>
+          <a href="ViewRequests.jsp" class="sidebar-link active">
+            <i class="bi bi-key-fill"></i> Search Requests
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= doName != null && doName.length() > 0 ? doName.substring(0, Math.min(doName.length(), 2)).toUpperCase() : "DO" %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= doName %>"><%= doName != null ? doName : "Owner" %></div>
+          <div class="sidebar-user-role">Data Owner</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Data Owner Workspace</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= doEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Data Consumer Search Requests</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Incoming requests submitted by Data Consumers searching for keyword matches inside your uploaded file repository.</p>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">File Match Authorizations Log</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 100px;">Req ID</th>
+                <th style="width: 120px;">File ID</th>
+                <th>Data Consumer (Receiver)</th>
+                <th style="width: 180px; text-align: center;">Evaluation Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasRows = false;
+                if (rs != null) {
+                  while (rs.next()) {
+                    hasRows = true;
+                    String rid      = rs.getString("Rid");
+                    String fid      = rs.getString("fid");
+                    String receiver = rs.getString("Receiver");
+                    String status   = rs.getString("Status");
+              %>
+              <tr>
+                <td class="mono"><%= rid %></td>
+                <td class="mono"><strong><%= fid %></strong></td>
+                <td class="mono" style="color: var(--text-muted);"><%= receiver %></td>
+                <td style="text-align: center;">
+                  <% if ("Success".equalsIgnoreCase(status) || "Approved".equalsIgnoreCase(status) || "Verified".equalsIgnoreCase(status)) { %>
+                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> <%= status %></span>
+                  <% } else if ("Pending".equalsIgnoreCase(status)) { %>
+                    <span class="badge badge-warning"><i class="bi bi-clock-fill"></i> <%= status %></span>
+                  <% } else { %>
+                    <span class="badge badge-primary"><i class="bi bi-info-circle-fill"></i> <%= status %></span>
+                  <% } %>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasRows) {
+              %>
+              <tr class="empty-row">
+                <td colspan="4">
+                  <div style="text-align: center; padding: 40px; color: var(--text-faint);">
+                    <i class="bi bi-envelope-open" style="font-size: 28px; margin-bottom: 8px; display: inline-block;"></i>
+                    <div style="font-weight: 500; color: var(--text-main);">No request logs found</div>
+                    <div style="font-size: 12px; margin-top: 4px;">Consumers have not queried files from your repository yet.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-</div>
-<%try{if(rs!=null)rs.close();}catch(Exception e){}try{if(st!=null)st.close();}catch(Exception e){}try{if(con!=null)con.close();}catch(Exception e){}%>
-</body></html>
+
+  <script src="js/theme.js"></script>
+</body>
+</html>
+<%
+  try { if (rs != null) rs.close(); } catch (Exception e) {}
+  try { if (st != null) st.close(); } catch (Exception e) {}
+  try { if (con != null) con.close(); } catch (Exception e) {}
+%>

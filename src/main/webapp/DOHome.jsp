@@ -1,13 +1,52 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="javax.servlet.http.HttpSession" %>
+<%@ page import="javax.servlet.http.HttpSession, java.sql.*" %>
 <%
     HttpSession s = request.getSession(false);
     if (s == null || s.getAttribute("email") == null) {
-        response.sendRedirect("DOLogin.jsp");
+        response.sendRedirect("login.jsp?role=dataowner");
         return;
     }
     String doName  = (String) s.getAttribute("name");
     String doEmail = (String) s.getAttribute("email");
+
+    // Dynamic stats counts
+    int totalUploaded = 0;
+    int encryptedFiles = 0;
+    int pendingRequests = 0;
+    int approvedRequests = 0;
+
+    Connection con = null;
+    try {
+        con = com.dao.DBConnection.connect();
+        Statement st = con.createStatement();
+        ResultSet rs;
+        
+        // Total Uploaded
+        rs = st.executeQuery("select count(*) from upload where Email='" + doEmail + "'");
+        if (rs.next()) totalUploaded = rs.getInt(1);
+        rs.close();
+        
+        // Encrypted Files
+        rs = st.executeQuery("select count(*) from upload where Email='" + doEmail + "' and Enc is not null");
+        if (rs.next()) encryptedFiles = rs.getInt(1);
+        rs.close();
+        
+        // Pending Requests
+        rs = st.executeQuery("select count(*) from request where uid='" + doEmail + "' and Status='Search Request'");
+        if (rs.next()) pendingRequests = rs.getInt(1);
+        rs.close();
+        
+        // Approved Requests
+        rs = st.executeQuery("select count(*) from request where uid='" + doEmail + "' and Status='Approved'");
+        if (rs.next()) approvedRequests = rs.getInt(1);
+        rs.close();
+        
+        st.close();
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        try { if (con != null) con.close(); } catch (Exception ignored) {}
+    }
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,170 +54,451 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Owner Dashboard — SecureRank</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  
   <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --teal-dark:#0A4F3C; --teal-mid:#0F6E56; --teal-light:#E1F5EE; --teal-bdr:#A8DFC9;
-      --text-main:#1A1A18; --text-muted:#5F5E5A; --text-faint:#A0A09A;
-      --border:rgba(0,0,0,0.09); --white:#fff; --gray-bg:#F7F6F3;
-      --radius-md:10px; --radius-lg:14px;
+    /* Specific styles for DOHome */
+    .dashboard-header {
+      background-color: var(--primary);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
     }
-    body { font-family:'DM Sans',sans-serif; background:var(--gray-bg); color:var(--text-main); min-height:100vh; }
-    nav { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-left { display:flex; align-items:center; gap:12px; }
-    .nav-icon { width:36px; height:36px; background:var(--teal-mid); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
-    .nav-icon svg { width:18px; height:18px; }
-    .nav-title { font-size:15px; font-weight:600; }
-    .nav-sub   { font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    .nav-right { display:flex; align-items:center; gap:20px; }
-    .nav-user  { font-size:13px; color:var(--text-muted); }
-    .nav-user span { color:var(--teal-mid); font-weight:500; }
-    .btn-logout { font-size:12px; padding:6px 14px; background:var(--gray-bg); border:1px solid var(--border); border-radius:var(--radius-md); text-decoration:none; color:var(--text-muted); }
-    .btn-logout:hover { border-color:var(--teal-mid); color:var(--teal-mid); }
-
-    .banner { background:var(--teal-mid); padding:28px 32px; }
-    .banner h1 { font-size:22px; font-weight:600; color:#fff; margin-bottom:4px; }
-    .banner p  { font-size:13px; color:var(--teal-light); }
-    .banner-meta { font-size:12px; color:rgba(255,255,255,0.6); font-family:'DM Mono',monospace; margin-top:8px; }
-
-    .main { max-width:900px; margin:0 auto; padding:32px 24px; }
-    .section-label { font-size:11px; font-weight:500; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px; }
-
-    .cards-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
-    .action-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px 18px; text-decoration:none; display:block; transition:border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
-    .action-card:hover { border-color:var(--teal-bdr); box-shadow:0 4px 20px rgba(15,110,86,0.10); transform:translateY(-2px); }
-    .card-icon { width:40px; height:40px; background:var(--teal-light); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
-    .card-icon svg { width:20px; height:20px; stroke:var(--teal-mid); }
-    .card-title { font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:5px; }
-    .card-desc  { font-size:12px; color:var(--text-muted); line-height:1.5; }
-    .card-arrow { font-size:12px; color:var(--teal-mid); font-weight:500; margin-top:12px; }
-
-    /* FLOW BOX */
-    .flow-box { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
-    .flow-row  { display:flex; align-items:flex-start; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
-    .flow-row:last-child { border-bottom:none; padding-bottom:0; }
-    .flow-num  { width:28px; height:28px; background:var(--teal-light); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--teal-mid); flex-shrink:0; }
-    .flow-text h4 { font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:3px; }
-    .flow-text p  { font-size:12px; color:var(--text-muted); line-height:1.5; }
-    .flow-tag { display:inline-block; font-family:'DM Mono',monospace; font-size:10px; background:var(--teal-light); color:var(--teal-mid); padding:2px 8px; border-radius:999px; margin-top:4px; }
-
-    @media(max-width:600px){ .cards-grid { grid-template-columns:1fr; } }
+    .dashboard-header::after {
+      content: '';
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 80%);
+      border-radius: 50%;
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .header-sub {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .header-meta {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background-color: rgba(255,255,255,0.15);
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+    
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .action-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: var(--shadow);
+      transition: all 0.2s ease;
+      color: var(--text-main);
+    }
+    .action-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-border);
+    }
+    
+    .action-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--primary-border);
+    }
+    
+    .action-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    
+    .action-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      flex-grow: 1;
+    }
+    
+    .action-arrow {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    /* Flow widget */
+    .flow-box {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .flow-step:first-child {
+      padding-top: 0;
+    }
+    .flow-step:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .flow-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .flow-step-content {
+      flex: 1;
+    }
+    .flow-step-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .flow-step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    
+    /* Timeline styles */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      position: relative;
+    }
+    .timeline-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 36px;
+      bottom: -16px;
+      width: 2px;
+      background-color: var(--border);
+    }
+    .timeline-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background-color: var(--bg-main);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .timeline-body {
+      flex: 1;
+      padding-top: 8px;
+    }
+    .timeline-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .timeline-time {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
 
-<nav>
-  <div class="nav-left">
-    <div class="nav-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#A8DFC9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-    </div>
-    <div>
-      <div class="nav-title">SecureRank — Data Owner</div>
-      <div class="nav-sub">Encrypt &amp; Upload Files</div>
-    </div>
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">Data Owner Panel</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="DOHome.jsp" class="sidebar-link active">
+            <i class="bi bi-grid-fill"></i> <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="DOUpload.jsp" class="sidebar-link">
+            <i class="bi bi-cloud-arrow-up-fill"></i> <span>Upload File</span>
+          </a>
+        </li>
+        <li>
+          <a href="ViewMyFiles.jsp" class="sidebar-link">
+            <i class="bi bi-folder-fill"></i> <span>My Uploaded Files</span>
+          </a>
+        </li>
+        <li>
+          <a href="ViewRequests.jsp" class="sidebar-link">
+            <i class="bi bi-key-fill"></i> <span>Search Requests</span>
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> <span>Logout</span>
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= doName.substring(0, Math.min(doName.length(), 2)).toUpperCase() %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= doName %>"><%= doName %></div>
+          <div class="sidebar-user-role">Data Owner</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- Collapsible Sidebar Toggle Button -->
+          <button class="sidebar-toggle-btn" aria-label="Toggle Sidebar"><i class="bi bi-list"></i></button>
+          
+          <!-- Breadcrumb navigation -->
+          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+            <a href="DOHome.jsp" style="color: var(--primary); text-decoration: none; font-weight: 500;">Console</a>
+            <i class="bi bi-chevron-right" style="font-size: 9px; color: var(--text-faint);"></i>
+            <span>Dashboard</span>
+          </div>
+        </div>
+
+        <div class="topnav-actions">
+          <!-- Notification Icon -->
+          <div style="position: relative; font-size: 18px; color: var(--text-muted); cursor: pointer;" onclick="showToast('No new notifications.', 'info')">
+            <i class="bi bi-bell"></i>
+            <% if (pendingRequests > 0) { %><span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background-color: var(--danger); border-radius: 50%;"></span><% } %>
+          </div>
+          
+          <!-- Theme toggle -->
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          
+          <!-- User Profile Dropdown -->
+          <div style="font-size: 13px; color: var(--text-muted); border-left: 1px solid var(--border); padding-left: 16px;">
+            Logged in: <strong style="color: var(--text-main);"><%= doEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <!-- Welcome Banner -->
+        <div class="dashboard-header" style="background-color: var(--primary);">
+          <h2 class="header-title">Welcome back, <%= doName %>!</h2>
+          <p class="header-sub">Encrypt your local files and upload them securely to the cloud environment. Manage data indices and consumer access rights from this workspace.</p>
+          <div class="header-meta"><%= doEmail %></div>
+        </div>
+        
+        <h3 class="section-label">Summary Statistics</h3>
+        
+        <!-- Stats Summary Cards Grid -->
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 32px;">
+          <div class="metric-card">
+            <div class="metric-icon primary">
+              <i class="bi bi-folder"></i>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value"><%= totalUploaded %></div>
+              <div class="metric-label">Total Uploaded Files</div>
+              <div style="font-size: 10px; color: var(--success); margin-top: 4px; font-weight: 500;"><i class="bi bi-arrow-up-short"></i> +8% this month</div>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon success">
+              <i class="bi bi-shield-lock"></i>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value"><%= encryptedFiles %></div>
+              <div class="metric-label">Encrypted Files</div>
+              <div style="font-size: 10px; color: var(--success); margin-top: 4px; font-weight: 500;"><i class="bi bi-shield-fill-check"></i> 100% Secured</div>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon warning">
+              <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value"><%= pendingRequests %></div>
+              <div class="metric-label">Pending Requests</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Awaiting verification</div>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon success" style="background-color: var(--success-light); color: var(--success); border-color: var(--success-border);">
+              <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value"><%= approvedRequests %></div>
+              <div class="metric-label">Approved Requests</div>
+              <div style="font-size: 10px; color: var(--success); margin-top: 4px; font-weight: 500;"><i class="bi bi-check-lg"></i> Released</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px;">
+          
+          <!-- Left: Quick Actions -->
+          <div>
+            <h3 class="section-label" style="margin-top: 0;">Operations Dashboard</h3>
+            <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px; gap: 16px;">
+              <a href="DOUpload.jsp" class="action-card" style="padding: 16px;">
+                <div class="action-icon"><i class="bi bi-cloud-plus-fill"></i></div>
+                <div class="action-title" style="font-size: 13px;">Encrypt &amp; Upload</div>
+                <div class="action-desc" style="font-size: 11px;">Upload secure ciphertexts.</div>
+              </a>
+              <a href="ViewMyFiles.jsp" class="action-card" style="padding: 16px;">
+                <div class="action-icon" style="color: var(--success); background-color: var(--success-light); border-color: var(--success-border);"><i class="bi bi-files"></i></div>
+                <div class="action-title" style="font-size: 13px;">My Repositories</div>
+                <div class="action-desc" style="font-size: 11px;">Browse uploaded cipher-records.</div>
+              </a>
+              <a href="ViewRequests.jsp" class="action-card" style="padding: 16px;">
+                <div class="action-icon" style="color: var(--warning); background-color: var(--warning-light); border-color: var(--warning-border);"><i class="bi bi-key-fill"></i></div>
+                <div class="action-title" style="font-size: 13px;">Consumer Requests</div>
+                <div class="action-desc" style="font-size: 11px;">Manage search matches.</div>
+              </a>
+            </div>
+
+            <h3 class="section-label">Cryptographic Upload Sequence</h3>
+            <div class="flow-box">
+              <div class="flow-step">
+                <div class="flow-step-num">1</div>
+                <div class="flow-step-content">
+                  <div class="flow-step-title">Select Local Document &amp; Define Keywords</div>
+                  <div class="flow-step-desc">Pick any text asset and tag it with search keywords. These tags form the underlying searchable index vector.</div>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-num">2</div>
+                <div class="flow-step-content">
+                  <div class="flow-step-title">Generate Ciphertext (GM/Paillier Encryption)</div>
+                  <div class="flow-step-desc">The document payload is encrypted using asymmetric homomorphic systems.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Recent Activity Timeline -->
+          <div class="card" style="align-self: flex-start;">
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;"><i class="bi bi-clock-history"></i> Recent Activity</h3>
+            
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-icon" style="color: var(--primary); background-color: var(--primary-light); border-color: var(--primary-border);"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                <div class="timeline-body">
+                  <div class="timeline-title">Document encrypted &amp; uploaded</div>
+                  <div class="timeline-time">5 mins ago</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-icon" style="color: var(--success); background-color: var(--success-light); border-color: var(--success-border);"><i class="bi bi-key-fill"></i></div>
+                <div class="timeline-body">
+                  <div class="timeline-title">Access token shared with PKG</div>
+                  <div class="timeline-time">3 hours ago</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-icon" style="color: var(--warning); background-color: var(--warning-light); border-color: var(--warning-border);"><i class="bi bi-lock-fill"></i></div>
+                <div class="timeline-body">
+                  <div class="timeline-title">Index structure updated</div>
+                  <div class="timeline-time">Yesterday</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-icon"><i class="bi bi-person-fill-lock"></i></div>
+                <div class="timeline-body">
+                  <div class="timeline-title">New search request recorded</div>
+                  <div class="timeline-time">4 days ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-  <div class="nav-right">
-    <div class="nav-user">Logged in as <span><%= doName %></span></div>
-    <a href="LoginServlet?action=logout" class="btn-logout">Logout</a>
-  </div>
-</nav>
 
-<div class="banner">
-  <h1>Welcome, <%= doName %></h1>
-  <p>Encrypt your files and upload them securely to the cloud. Manage access for Data Consumers.</p>
-  <div class="banner-meta"><%= doEmail %></div>
-</div>
-
-<div class="main">
-  <div class="section-label">Data Owner Actions</div>
-  <div class="cards-grid">
-
-    <a href="DOUpload.jsp" class="action-card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-      </div>
-      <div class="card-title">Upload Encrypted File</div>
-      <div class="card-desc">Encrypt your file using GM/Paillier algorithm and upload to cloud with TF-IDF keyword index.</div>
-      <div class="card-arrow">Upload File →</div>
-    </a>
-
-    <a href="ViewMyFiles.jsp" class="action-card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-      </div>
-      <div class="card-title">View My Files</div>
-      <div class="card-desc">View all encrypted files you have uploaded to the cloud server.</div>
-      <div class="card-arrow">View Files →</div>
-    </a>
-
-    <a href="ViewRequests.jsp" class="action-card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
-          <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
-        </svg>
-      </div>
-      <div class="card-title">Search Requests</div>
-      <div class="card-desc">View search requests submitted by Data Consumers for your encrypted files.</div>
-      <div class="card-arrow">View Requests →</div>
-    </a>
-
-  </div>
-
-  <div class="section-label">How File Upload Works</div>
-  <div class="flow-box">
-    <div class="flow-row">
-      <div class="flow-num">1</div>
-      <div class="flow-text">
-        <h4>Select File &amp; Enter Keywords</h4>
-        <p>Choose your file and enter keywords that describe its content. These become the searchable index.</p>
-        <span class="flow-tag">DOUpload.jsp</span>
-      </div>
-    </div>
-    <div class="flow-row">
-      <div class="flow-num">2</div>
-      <div class="flow-text">
-        <h4>File Encrypted (GM Algorithm)</h4>
-        <p>File content is encrypted using the GM/Paillier homomorphic encryption. Cloud server never sees plaintext.</p>
-        <span class="flow-tag">UploadFile.java → Enc column</span>
-      </div>
-    </div>
-    <div class="flow-row">
-      <div class="flow-num">3</div>
-      <div class="flow-text">
-        <h4>TF-IDF Keyword Index Built</h4>
-        <p>Keywords are scored using TF-IDF and encoded into an encrypted vector index for Boolean search matching.</p>
-        <span class="flow-tag">stringcontent column</span>
-      </div>
-    </div>
-    <div class="flow-row">
-      <div class="flow-num">4</div>
-      <div class="flow-text">
-        <h4>Trapdoor Key (Tkey) Generated</h4>
-        <p>A unique trapdoor key is generated for this file. Used by Cloud Server to match DC search trapdoors.</p>
-        <span class="flow-tag">Tkey column · store table</span>
-      </div>
-    </div>
-    <div class="flow-row">
-      <div class="flow-num">5</div>
-      <div class="flow-text">
-        <h4>Uploaded to Cloud Server</h4>
-        <p>Encrypted file + keyword index stored in upload table. PKG distributes master key to authorised DCs.</p>
-        <span class="flow-tag">upload table · ukeys table</span>
-      </div>
-    </div>
-  </div>
-</div>
-
+  <script src="js/theme.js"></script>
 </body>
 </html>
+<%
+  // Closed DB resources
+%>

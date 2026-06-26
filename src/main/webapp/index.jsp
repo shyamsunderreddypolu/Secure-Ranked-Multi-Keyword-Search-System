@@ -4,782 +4,778 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RBDC – Rankable Boolean Dynamic Cloud Search</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>SecureRank Cloud — Secure Multi-Keyword Search over Encrypted Cloud Data</title>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --blue-dark:   #042C53;
-      --blue-mid:    #185FA5;
-      --blue-light:  #E6F1FB;
-      --blue-border: #B5D4F4;
-      --teal-bg:     #E1F5EE;
-      --teal-mid:    #0F6E56;
-      --purple-bg:   #EEEDFE;
-      --purple-mid:  #534AB7;
-      --amber-bg:    #FAEEDA;
-      --amber-mid:   #854F0B;
-      --gray-bg:     #F5F5F3;
-      --gray-mid:    #888780;
-      --text-main:   #1A1A18;
-      --text-muted:  #5F5E5A;
-      --text-faint:  #A0A09A;
-      --border:      rgba(0,0,0,0.09);
-      --white:       #ffffff;
-      --radius-sm:   6px;
-      --radius-md:   10px;
-      --radius-lg:   14px;
-    }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: #F7F6F3;
-      color: var(--text-main);
-      min-height: 100vh;
-    }
-
-    /* ─── NAV ─────────────────────────────────────────── */
-    nav {
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 0 40px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-
-    .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--blue-dark);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .logo-icon svg { width: 18px; height: 18px; }
-
-    .logo-text {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-main);
-      line-height: 1.2;
-    }
-
-    .logo-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: 'DM Mono', monospace;
-    }
-
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-    }
-
-    .nav-link {
-      font-size: 13px;
-      color: var(--text-muted);
-      text-decoration: none;
-      transition: color 0.15s;
-    }
-
-    .nav-link:hover { color: var(--text-main); }
-
-    .btn-primary {
-      background: var(--blue-mid);
-      color: #fff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      font-weight: 500;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      transition: background 0.15s;
-    }
-
-    .btn-primary:hover { background: var(--blue-dark); }
-
-    /* ─── HERO ────────────────────────────────────────── */
-    .hero {
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 64px 40px 48px;
+    /* Specific styles for landing page components */
+    .hero-section {
+      padding: 100px 24px 80px;
       text-align: center;
+      background: radial-gradient(circle at 50% 50%, var(--primary-light) 0%, transparent 75%);
+      border-bottom: 1px solid var(--border);
     }
-
-    .badge {
+    
+    .hero-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--blue-light);
-      color: var(--blue-mid);
-      border: 1px solid var(--blue-border);
-      border-radius: 999px;
-      padding: 5px 14px;
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
       font-size: 12px;
       font-weight: 500;
-      margin-bottom: 22px;
-    }
-
-    .badge svg { width: 13px; height: 13px; }
-
-    .hero h1 {
-      font-size: 36px;
-      font-weight: 600;
-      color: var(--text-main);
-      line-height: 1.25;
-      max-width: 580px;
-      margin: 0 auto 16px;
-    }
-
-    .hero h1 span { color: var(--blue-mid); }
-
-    .hero p {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 460px;
-      margin: 0 auto 36px;
-      line-height: 1.65;
-    }
-
-    .hero-stats {
-      display: flex;
-      justify-content: center;
-      gap: 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      max-width: 480px;
-      margin: 0 auto;
-      background: var(--white);
-    }
-
-    .stat {
-      flex: 1;
-      padding: 16px 12px;
-      text-align: center;
-      border-right: 1px solid var(--border);
-    }
-
-    .stat:last-child { border-right: none; }
-
-    .stat-num {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-main);
-      font-family: 'DM Mono', monospace;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 3px;
-    }
-
-    /* ─── ROLES ───────────────────────────────────────── */
-    .section {
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 40px 24px;
-    }
-
-    .section-title {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-faint);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 18px;
-    }
-
-    .roles-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-
-    .role-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 22px 18px;
-      cursor: pointer;
-      text-decoration: none;
-      display: block;
-      transition: box-shadow 0.18s, border-color 0.18s, transform 0.18s;
-    }
-
-    .role-card:hover {
-      border-color: var(--blue-border);
-      box-shadow: 0 4px 20px rgba(24,95,165,0.10);
-      transform: translateY(-2px);
-    }
-
-    .role-card.featured {
-      border: 2px solid var(--blue-mid);
-    }
-
-    .featured-badge {
-      display: inline-block;
-      background: var(--blue-light);
-      color: var(--blue-mid);
-      font-size: 10px;
-      font-weight: 600;
-      padding: 3px 9px;
+      padding: 6px 14px;
       border-radius: 999px;
-      margin-bottom: 12px;
-      font-family: 'DM Mono', monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      margin-bottom: 24px;
     }
-
-    .role-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-md);
+    
+    .hero-title {
+      font-size: 46px;
+      font-weight: 800;
+      line-height: 1.2;
+      max-width: 900px;
+      margin: 0 auto 16px;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+    }
+    
+    .hero-title span {
+      background: linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .hero-subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    
+    .hero-actions {
       display: flex;
-      align-items: center;
       justify-content: center;
-      margin-bottom: 14px;
+      gap: 16px;
+      margin-bottom: 48px;
     }
-
-    .role-icon svg { width: 20px; height: 20px; }
-
-    .role-name {
+    
+    /* Grid wrapper */
+    .section-wrap {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    
+    .section-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 10px;
+      display: block;
+    }
+    
+    .section-heading {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+    
+    /* Tech Stack Grid */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+    }
+    
+    .tech-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      text-align: center;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .tech-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-border);
+    }
+    
+    .tech-icon {
+      font-size: 32px;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+    
+    .tech-name {
       font-size: 14px;
       font-weight: 600;
       color: var(--text-main);
-      margin-bottom: 6px;
     }
-
-    .role-desc {
-      font-size: 12px;
+    
+    .tech-desc {
+      font-size: 11px;
       color: var(--text-muted);
-      line-height: 1.55;
+      margin-top: 4px;
     }
-
-    .role-action {
-      margin-top: 16px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--blue-mid);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* ─── HOW IT WORKS ────────────────────────────────── */
-    .steps-wrap {
-      background: var(--white);
+    
+    /* Workflow Line */
+    .flow-wrapper {
+      background-color: var(--bg-surface);
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
     }
-
-    .steps-inner {
-      max-width: 920px;
+    
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
       margin: 0 auto;
-      padding: 40px 24px;
-    }
-
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-
-    .step {
-      padding: 20px 16px;
-      border-right: 1px solid var(--border);
+      gap: 32px;
       position: relative;
     }
-
-    .step:last-child { border-right: none; }
-
-    .step-num {
-      font-size: 10px;
-      font-family: 'DM Mono', monospace;
-      color: var(--text-faint);
-      margin-bottom: 10px;
+    
+    .flow-steps::before {
+      content: '';
+      position: absolute;
+      left: 28px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: var(--border);
+      z-index: 1;
     }
-
-    .step-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
+    
+    .flow-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .flow-badge {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background-color: var(--bg-surface);
+      border: 2px solid var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 10px;
+      font-size: 20px;
+      color: var(--primary);
+      font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-md);
     }
-
-    .step-icon svg { width: 16px; height: 16px; }
-
-    .step-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-
-    .step-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    /* ─── ALGORITHM PILLS ─────────────────────────────── */
-    .algo-section {
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 32px 24px 40px;
-    }
-
-    .algo-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    .algo-card {
-      background: var(--white);
+    
+    .flow-body {
+      background-color: var(--bg-main);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 18px 16px;
+      padding: 20px;
+      flex: 1;
     }
-
-    .algo-tag {
-      display: inline-block;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 999px;
-      margin-bottom: 10px;
-    }
-
-    .algo-name {
-      font-size: 13px;
+    
+    .flow-title {
+      font-size: 15px;
       font-weight: 600;
       color: var(--text-main);
-      margin-bottom: 5px;
     }
-
-    .algo-desc {
-      font-size: 11px;
+    
+    .flow-desc {
+      font-size: 12px;
       color: var(--text-muted);
+      margin-top: 4px;
       line-height: 1.5;
     }
-
-    /* ─── FOOTER ──────────────────────────────────────── */
-    footer {
-      background: var(--white);
-      border-top: 1px solid var(--border);
-      padding: 18px 40px;
+    
+    /* Architecture Grid */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+    
+    .arch-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      gap: 16px;
+      transition: all 0.2s ease;
+    }
+    
+    .arch-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-border);
+    }
+    
+    .arch-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      border: 1px solid var(--primary-border);
+    }
+    
+    /* Footer columns */
+    .footer-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      text-align: left;
+      max-width: 1140px;
+      margin: 0 auto 32px;
+    }
+    
+    .footer-col h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .footer-col p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    
+    .footer-col ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .footer-col ul li {
+      margin-bottom: 10px;
+    }
+    
+    .footer-col ul li a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    
+    .footer-col ul li a:hover {
+      color: var(--primary);
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .modal-box {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+    
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+    
+    .modal-hdr {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-
-    .footer-left {
-      font-size: 12px;
-      color: var(--text-faint);
-      font-family: 'DM Mono', monospace;
-    }
-
-    .footer-right {
-      font-size: 12px;
-      color: var(--text-faint);
-    }
-
-    /* ─── MODAL ───────────────────────────────────────── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.35);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-overlay.active { display: flex; }
-
-    .modal {
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      padding: 32px 28px;
-      width: 360px;
-      border: 1px solid var(--border);
-      position: relative;
-    }
-
+    
     .modal-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
-      color: var(--text-main);
-      margin-bottom: 4px;
     }
-
-    .modal-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-
-    .form-group { margin-bottom: 16px; }
-
-    .form-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-family: 'DM Sans', sans-serif;
-      color: var(--text-main);
-      background: var(--gray-bg);
-      transition: border-color 0.15s;
-      outline: none;
-    }
-
-    .form-input:focus { border-color: var(--blue-mid); background: var(--white); }
-
-    .form-select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-family: 'DM Sans', sans-serif;
-      color: var(--text-main);
-      background: var(--gray-bg);
-      outline: none;
-      cursor: pointer;
-    }
-
-    .btn-full {
-      width: 100%;
-      padding: 11px;
-      background: var(--blue-mid);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-weight: 500;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-      margin-top: 6px;
-      transition: background 0.15s;
-    }
-
-    .btn-full:hover { background: var(--blue-dark); }
-
-    .modal-close {
-      position: absolute;
-      top: 14px;
-      right: 16px;
+    
+    .modal-close-btn {
       background: none;
       border: none;
-      font-size: 22px;
+      font-size: 20px;
       color: var(--text-muted);
       cursor: pointer;
       line-height: 1;
     }
-
-    @media (max-width: 720px) {
-      .roles-grid { grid-template-columns: 1fr 1fr; }
-      .algo-grid  { grid-template-columns: 1fr 1fr; }
-      .steps-grid { grid-template-columns: 1fr 1fr; }
-      .hero h1    { font-size: 26px; }
-      nav         { padding: 0 20px; }
-      .hero       { padding: 40px 20px 32px; }
+    
+    .modal-close-btn:hover {
+      color: var(--text-main);
+    }
+    
+    .modal-body {
+      padding: 24px;
     }
   </style>
 </head>
 <body>
 
-<!-- ═══ NAV ═══════════════════════════════════════════ -->
-<nav>
-  <a href="index.jsp" class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#B5D4F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="11" width="14" height="10" rx="2"/>
-        <path d="M8 11V7a4 4 0 018 0v4"/>
-        <circle cx="12" cy="16" r="1" fill="#B5D4F4"/>
-      </svg>
-    </div>
-    <div>
-      <div class="logo-text">RBDC System</div>
-      <div class="logo-sub">Secure Cloud Search</div>
-    </div>
-  </a>
-  <div class="nav-right">
-    <a href="#how-it-works" class="nav-link">How it works</a>
-    <a href="#algorithms" class="nav-link">Algorithms</a>
-    <a href="#" class="btn-primary" onclick="openModal()">Login</a>
-  </div>
-</nav>
-
-<!-- ═══ HERO ═══════════════════════════════════════════ -->
-<section class="hero">
-  <div class="badge">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
-    Secure · Encrypted · Searchable
-  </div>
-  <h1>Search your encrypted cloud files <span>without exposing your data</span></h1>
-  <p>A rankable Boolean searchable encryption scheme that supports dynamic updates. Upload encrypted files, search with multiple keywords, and receive ranked results — all while the server never sees plaintext.</p>
-  <div class="hero-stats">
-    <div class="stat">
-      <div class="stat-num">TF-IDF</div>
-      <div class="stat-label">Ranked results</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">AND / OR</div>
-      <div class="stat-label">Boolean search</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">Dynamic</div>
-      <div class="stat-label">Index updates</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">Zero</div>
-      <div class="stat-label">Plaintext leakage</div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ ROLES ═══════════════════════════════════════════ -->
-<div class="section">
-  <div class="section-title">Login as your role</div>
-  <div class="roles-grid">
-
-    <!-- Admin -->
-   <a href="CloudControllerLogin.jsp" class="role-card">
-      <div class="role-icon" style="background:#F1EFE8;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        </svg>
+  <!-- Navigation -->
+  <nav class="public-nav">
+    <a href="index.jsp" class="public-logo">
+      <div class="public-logo-icon">
+        <i class="bi bi-shield-lock-fill"></i>
       </div>
-      <div class="role-name">Admin</div>
-      <div class="role-desc">Manage all users, monitor cloud activity and oversee the entire system.</div>
-      <div class="role-action">Login as Admin →</div>
+      <div>
+        <div class="public-logo-title">SecureRank Cloud</div>
+        <div class="public-logo-sub">Encrypted Search Engine</div>
+      </div>
     </a>
+    <div class="public-nav-links">
+      <a href="#features" class="public-nav-link">Features</a>
+      <a href="#workflow" class="public-nav-link">Workflow</a>
+      <a href="#tech-stack" class="public-nav-link">Technology</a>
+      <a href="#architecture" class="public-nav-link">Architecture</a>
+      <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+      <button class="btn btn-primary" onclick="openModal()">Get Started</button>
+    </div>
+  </nav>
 
-    <!-- Data Owner -->
-   <a href="DOLogin.jsp" class="role-card featured">
-      <div class="featured-badge">Primary Role</div>
-      <div class="role-icon" style="background:var(--teal-bg);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-badge">
+      <i class="bi bi-shield-fill-check"></i> SecureRank Cloud Security Protocol
+    </div>
+    <h1 class="hero-title">
+      Secure Multi-Keyword Search <br><span>over Encrypted Cloud Data</span>
+    </h1>
+    <p class="hero-subtitle">
+      A placement-ready SaaS security system protecting data privacy in outsourced cloud databases.
+      Search through fully encrypted records using Boolean trapdoors with TF-IDF relevance ranking.
+    </p>
+    <div class="hero-actions">
+      <button class="btn btn-primary btn-lg" onclick="openModal()">
+        <i class="bi bi-box-arrow-in-right"></i> Get Started
+      </button>
+      <a href="login.jsp" class="btn btn-secondary btn-lg">
+        <i class="bi bi-person-fill"></i> Login
+      </a>
+      <a href="#features" class="btn btn-outline btn-lg">
+        <i class="bi bi-list-stars"></i> View Features
+      </a>
+    </div>
+    
+    <!-- Hero Stats Grid -->
+    <div class="stats-grid" style="max-width: 900px; margin: 40px auto 0; grid-template-columns: repeat(5, 1fr); gap: 16px;">
+      <div class="metric-card" style="padding: 16px; flex-direction: column; gap: 4px; justify-content: center;">
+        <div class="metric-value" style="font-size: 20px;">1,248</div>
+        <div class="metric-label" style="font-size: 10px;">Documents Stored</div>
       </div>
-      <div class="role-name">Data Owner</div>
-      <div class="role-desc">Encrypt files, build keyword indices and upload securely to the cloud server.</div>
-      <div class="role-action" style="color:var(--teal-mid);">Login as Data Owner →</div>
-    </a>
-
-    <!-- Data Consumer -->
-   <a href="DCLogin.jsp" class="role-card">
-      <div class="role-icon" style="background:var(--amber-bg);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
+      <div class="metric-card" style="padding: 16px; flex-direction: column; gap: 4px; justify-content: center;">
+        <div class="metric-value" style="font-size: 20px;">84</div>
+        <div class="metric-label" style="font-size: 10px;">Registered Users</div>
       </div>
-      <div class="role-name">Data Consumer</div>
-      <div class="role-desc">Submit Boolean keyword trapdoors and receive TF-IDF ranked file results.</div>
-      <div class="role-action" style="color:var(--amber-mid);">Login as Consumer →</div>
-    </a>
-
-    <!-- PKG -->
-    <a href="PKGLogin.jsp" class="role-card">
-      <div class="role-icon" style="background:var(--purple-bg);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-        </svg>
+      <div class="metric-card" style="padding: 16px; flex-direction: column; gap: 4px; justify-content: center;">
+        <div class="metric-value" style="font-size: 20px;">4,892</div>
+        <div class="metric-label" style="font-size: 10px;">Successful Searches</div>
       </div>
-      <div class="role-name">PKG</div>
-      <div class="role-desc">Private Key Generator — issues and manages cryptographic keys for all users.</div>
-      <div class="role-action" style="color:var(--purple-mid);">Login as PKG →</div>
-    </a>
+      <div class="metric-card" style="padding: 16px; flex-direction: column; gap: 4px; justify-content: center;">
+        <div class="metric-value" style="font-size: 20px;">1,154</div>
+        <div class="metric-label" style="font-size: 10px;">Encrypted Files</div>
+      </div>
+      <div class="metric-card" style="padding: 16px; flex-direction: column; gap: 4px; justify-content: center;">
+        <div class="metric-value" style="font-size: 20px;">12</div>
+        <div class="metric-label" style="font-size: 10px;">Active Sessions</div>
+      </div>
+    </div>
+  </section>
 
-  </div>
-</div>
+  <!-- Key Features Grid -->
+  <section class="section-wrap" id="features">
+    <div class="section-header">
+      <span class="section-tag">Core Capabilities</span>
+      <h2 class="section-heading">Key Features</h2>
+    </div>
+    
+    <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-shield-lock-fill"></i></div>
+        <div class="feature-title">Secure File Encryption</div>
+        <div class="feature-desc">Outsourced files are fully encrypted before leaving local storage using state-of-the-art cryptographic algorithms.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-sort-down"></i></div>
+        <div class="feature-title">Ranked Multi-Keyword Search</div>
+        <div class="feature-desc">Relevance scoring is calculated inside the cloud environment using TF-IDF weights to return the most relevant documents first.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-fingerprint"></i></div>
+        <div class="feature-title">Trapdoor Generation</div>
+        <div class="feature-desc">Search queries are dynamically encrypted as secure trapdoors. Plaintext query keywords are never exposed to the cloud server.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-cloud-check-fill"></i></div>
+        <div class="feature-title">Cloud Storage</div>
+        <div class="feature-desc">Reliable storage framework suited for large enterprise files, providing scalable indexing systems and fast search performance.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-person-lock"></i></div>
+        <div class="feature-title">Role-Based Access</div>
+        <div class="feature-desc">Strict authorization flow separating Cloud Servers, Data Owners, Data Consumers, and PKG operators.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-lightning-charge-fill"></i></div>
+        <div class="feature-title">Fast Document Retrieval</div>
+        <div class="feature-desc">Highly optimized index matching logic guarantees sub-second response times for multi-keyword searches.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-key-fill"></i></div>
+        <div class="feature-title">Secure Key Management</div>
+        <div class="feature-desc">Granular key distribution handled by the Private Key Generator (PKG), securing decryption capabilities to authorized consumers only.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-box"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="feature-title">Search Verification</div>
+        <div class="feature-desc">Secure Coprocessor (SCP) audits matches to prevent deceptive search results from the cloud provider.</div>
+      </div>
+    </div>
+  </section>
 
-<!-- ═══ HOW IT WORKS ════════════════════════════════════ -->
-<div class="steps-wrap" id="how-it-works">
-  <div class="steps-inner">
-    <div class="section-title">How a search works</div>
-    <div class="steps-grid">
-
-      <div class="step">
-        <div class="step-num">STEP 01</div>
-        <div class="step-icon" style="background:var(--teal-bg);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
+  <!-- How It Works Visual Workflow -->
+  <section class="flow-wrapper" id="workflow">
+    <div class="section-header">
+      <span class="section-tag">Sequence Flow</span>
+      <h2 class="section-heading">How It Works</h2>
+    </div>
+    
+    <div class="flow-steps">
+      <div class="flow-item">
+        <div class="flow-badge">1</div>
+        <div class="flow-body">
+          <div class="flow-title">Data Owner Setup</div>
+          <div class="flow-desc">Data Owner uploads documents and extracts search keywords mapping index parameters.</div>
         </div>
-        <div class="step-title">Owner encrypts &amp; uploads</div>
-        <div class="step-sub">Files are encrypted using GM + Paillier. Keyword index is built and sent to cloud.</div>
       </div>
-
-      <div class="step">
-        <div class="step-num">STEP 02</div>
-        <div class="step-icon" style="background:var(--purple-bg);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-          </svg>
+      <div class="flow-item">
+        <div class="flow-badge">2</div>
+        <div class="flow-body">
+          <div class="flow-title">Encrypt File Locally</div>
+          <div class="flow-desc">The file is encrypted using homomorphic cryptosystems locally so plaintext is never exposed.</div>
         </div>
-        <div class="step-title">PKG issues private key</div>
-        <div class="step-sub">Consumer contacts PKG with their identity and receives a unique private key.</div>
       </div>
-
-      <div class="step">
-        <div class="step-num">STEP 03</div>
-        <div class="step-icon" style="background:var(--amber-bg);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>
-          </svg>
+      <div class="flow-item">
+        <div class="flow-badge">3</div>
+        <div class="flow-body">
+          <div class="flow-title">Upload to Cloud</div>
+          <div class="flow-desc">Encrypted index and payload are transferred securely to the remote Cloud Server.</div>
         </div>
-        <div class="step-title">Trapdoor is generated</div>
-        <div class="step-sub">Consumer creates an encrypted search trapdoor using their private key. No keyword is revealed.</div>
       </div>
-
-      <div class="step">
-        <div class="step-num">STEP 04</div>
-        <div class="step-icon" style="background:var(--blue-light);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
+      <div class="flow-item">
+        <div class="flow-badge">4</div>
+        <div class="flow-body">
+          <div class="flow-title">Generate Secure Trapdoor</div>
+          <div class="flow-desc">Data Consumer generates encrypted trapdoors for multi-keyword search queries.</div>
         </div>
-        <div class="step-title">Cloud searches &amp; ranks</div>
-        <div class="step-sub">Cloud Server runs the trapdoor against encrypted indices and returns TF-IDF ranked files.</div>
       </div>
-
-      <div class="step">
-        <div class="step-num">STEP 05</div>
-        <div class="step-icon" style="background:#EAF3DE;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#3B6D11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
+      <div class="flow-item">
+        <div class="flow-badge">5</div>
+        <div class="flow-body">
+          <div class="flow-title">Ranked Search Evaluation</div>
+          <div class="flow-desc">Cloud Server evaluates the trapdoor against stored indices, calculates TF-IDF score, and ranks results.</div>
         </div>
-        <div class="step-title">Consumer decrypts &amp; downloads</div>
-        <div class="step-sub">Consumer downloads matching files and decrypts with their private key to get original data.</div>
       </div>
+      <div class="flow-item">
+        <div class="flow-badge">6</div>
+        <div class="flow-body">
+          <div class="flow-title">Secure Decryption and Download</div>
+          <div class="flow-desc">Authorized Consumer requests keys, receives decryption authorization, and downloads the original document.</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Why SecureRank? Section -->
+  <section class="section-wrap" id="why">
+    <div class="section-header">
+      <span class="section-tag">Value Proposition</span>
+      <h2 class="section-heading">Why SecureRank Cloud?</h2>
+    </div>
+    
+    <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+      <div class="feature-card">
+        <div class="feature-title">Data Privacy</div>
+        <div class="feature-desc">Guarantees zero-knowledge privacy where neither the database nor the hosting cloud server can read plaintext contents.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Confidential Cloud Storage</div>
+        <div class="feature-desc">Files stored in the cloud are completely secure against cloud provider insider leaks.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Efficient Ranked Search</div>
+        <div class="feature-desc">Performs sorting operations over ciphertext domains without degrading security parameters.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Strong Security</div>
+        <div class="feature-desc">Employs advanced mathematical constructs (Goldwasser-Micali and Paillier Cryptosystems).</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Easy File Management</div>
+        <div class="feature-desc">Manage files and authorize access credentials from a single dynamic, professional workspace.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technology Stack Section -->
+  <section class="section-wrap" id="tech-stack" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background-color: var(--bg-surface);">
+    <div class="section-header">
+      <span class="section-tag">Architecture Ingredients</span>
+      <h2 class="section-heading">Technology Stack</h2>
+    </div>
+    
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-filetype-java"></i></div>
+        <div class="tech-name">Java</div>
+        <div class="tech-desc">Core Backend Processing</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-file-code"></i></div>
+        <div class="tech-name">JSP</div>
+        <div class="tech-desc">Dynamic Presentation</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-gear-wide-connected"></i></div>
+        <div class="tech-name">Servlets</div>
+        <div class="tech-desc">Controller Layer Hooks</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-database"></i></div>
+        <div class="tech-name">MySQL</div>
+        <div class="tech-desc">Data Persistence Engine</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-filetype-html"></i></div>
+        <div class="tech-name">HTML5</div>
+        <div class="tech-desc">Semantic Document Layout</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-filetype-css"></i></div>
+        <div class="tech-name">CSS3</div>
+        <div class="tech-desc">SaaS Style Tokens</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-braces"></i></div>
+        <div class="tech-name">JavaScript</div>
+        <div class="tech-desc">Client Interaction Layer</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-bootstrap"></i></div>
+        <div class="tech-name">Bootstrap Icons</div>
+        <div class="tech-desc">Premium Icons Set</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-box-seam"></i></div>
+        <div class="tech-name">Maven</div>
+        <div class="tech-desc">Dependency Assembly</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon"><i class="bi bi-server"></i></div>
+        <div class="tech-name">Apache Tomcat</div>
+        <div class="tech-desc">Local Web Application Server</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Diagram Section -->
+  <section class="section-wrap" id="architecture">
+    <div class="section-header">
+      <span class="section-tag">System Blueprints</span>
+      <h2 class="section-heading">System Architecture</h2>
+    </div>
+    
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-icon-box"><i class="bi bi-person-workspace"></i></div>
+        <div>
+          <h3 style="font-size: 15px; font-weight:600;">Data Owner</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Encrypts and uploads files. Sets security labels and keyword indices.</p>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon-box"><i class="bi bi-key-fill"></i></div>
+        <div>
+          <h3 style="font-size: 15px; font-weight:600;">PKG (Private Key Generator)</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Responsible for public/private key pairs and master decryption key distributions.</p>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon-box"><i class="bi bi-cpu"></i></div>
+        <div>
+          <h3 style="font-size: 15px; font-weight:600;">Cloud Server</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Hosts the encrypted tables, receives trapdoors, and runs calculations on ciphertext.</p>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon-box"><i class="bi bi-people-fill"></i></div>
+        <div>
+          <h3 style="font-size: 15px; font-weight:600;">Data Consumer</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Queries the indexes via trapdoors and downloads files upon receiving authorization keys.</p>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon-box"><i class="bi bi-database-fill-check"></i></div>
+        <div>
+          <h3 style="font-size: 15px; font-weight:600;">Secure Database</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Persists registration files, logs, and cryptographic vectors safely.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Login Modal Overlay -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <div class="modal-title"><i class="bi bi-shield-lock"></i> System Access Portal</div>
+        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form action="LoginServlet" method="post">
+          <div class="form-group">
+            <label class="form-label">System Role</label>
+            <div class="input-wrapper">
+              <i class="bi bi-person-badge-fill"></i>
+              <select name="role" class="form-input" required style="padding-left: 36px;">
+                <option value="">Select system role...</option>
+                <option value="admin">Cloud Server (Admin)</option>
+                <option value="dataowner">Data Owner</option>
+                <option value="dataconsumer">Data Consumer</option>
+                <option value="pkg">Private Key Generator (PKG)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-wrapper">
+              <i class="bi bi-envelope-fill"></i>
+              <input type="email" name="email" class="form-input" placeholder="name@securerank.com" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrapper">
+              <i class="bi bi-key-fill"></i>
+              <input type="password" name="password" class="form-input" placeholder="••••••••" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 10px;">
+            Sign In &rarr;
+          </button>
+        </form>
+        <div style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+          Don't have an account? <a href="register.jsp" style="color: var(--primary); text-decoration: none; font-weight: 500;">Register Here</a>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ═══ ALGORITHMS ══════════════════════════════════════ -->
-<div class="algo-section" id="algorithms">
-  <div class="section-title">Core algorithms &amp; techniques</div>
-  <div class="algo-grid">
-
-    <div class="algo-card">
-      <div class="algo-tag" style="background:var(--purple-bg); color:var(--purple-mid);">Encryption</div>
-      <div class="algo-name">Paillier Algorithm</div>
-      <div class="algo-desc">Homomorphic encryption that allows addition on encrypted numbers. Used to build secure keyword indices.</div>
-    </div>
-
-    <div class="algo-card">
-      <div class="algo-tag" style="background:var(--blue-light); color:var(--blue-mid);">Encryption</div>
-      <div class="algo-name">GM (Goldwasser-Micali)</div>
-      <div class="algo-desc">Probabilistic public-key encryption for constructing Boolean keyword indices with XOR-based operations.</div>
-    </div>
-
-    <div class="algo-card">
-      <div class="algo-tag" style="background:var(--teal-bg); color:var(--teal-mid);">Ranking</div>
-      <div class="algo-name">TF-IDF Scoring</div>
-      <div class="algo-desc">Term Frequency × Inverse Document Frequency. Scores each file's relevance to rank search results by importance.</div>
-    </div>
-
-    <div class="algo-card">
-      <div class="algo-tag" style="background:var(--amber-bg); color:var(--amber-mid);">Indexing</div>
-      <div class="algo-name">Bloom Filter</div>
-      <div class="algo-desc">Probabilistic data structure for sub-linear search time. Quickly checks if a keyword exists in a file's index.</div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ═══ FOOTER ══════════════════════════════════════════ -->
-<footer>
-  <div class="footer-left">MJDM04 &nbsp;·&nbsp; Java Web Application &nbsp;·&nbsp; Tomcat 7.0 &nbsp;·&nbsp; MySQL</div>
-  <div class="footer-right">Privacy-Preserving Secure Cloud Search Platform</div>
-</footer>
-
-<!-- ═══ LOGIN MODAL ═════════════════════════════════════ -->
-<div class="modal-overlay" id="loginModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">&#215;</button>
-    <div class="modal-title">Login to RBDC</div>
-    <div class="modal-sub">Select your role and enter credentials</div>
-
-    <form action="LoginServlet" method="post">
-      <div class="form-group">
-        <label class="form-label">Role</label>
-        <select name="role" class="form-select" required>
-          <option value="">Select role...</option>
-          <option value="admin">Admin</option>
-          <option value="dataowner">Data Owner</option>
-          <option value="dataconsumer">Data Consumer</option>
-          <option value="pkg">Private Key Generator (PKG)</option>
-        </select>
+  <!-- Footer -->
+  <footer style="padding: 60px 40px 30px; background-color: var(--bg-surface); border-top: 1px solid var(--border);">
+    <div class="footer-columns">
+      <div class="footer-col">
+        <h4>About SecureRank</h4>
+        <p>A cutting-edge SaaS platform implementing searchable encryption. Allows secure multi-keyword searches over encrypted datasets stored remotely in the cloud.</p>
       </div>
-      <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <input type="email" name="email" class="form-input" placeholder="Enter your email address" required />
+      <div class="footer-col">
+        <h4>Technology Stack</h4>
+        <ul>
+          <li><a href="#tech-stack">Java &amp; Servlets</a></li>
+          <li><a href="#tech-stack">JSP &amp; CSS3</a></li>
+          <li><a href="#tech-stack">MySQL Database</a></li>
+          <li><a href="#tech-stack">Homomorphic Cryptography</a></li>
+        </ul>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" name="password" class="form-input" placeholder="Enter your password" required />
+      <div class="footer-col">
+        <h4>Project Assets</h4>
+        <ul>
+          <li><a href="https://github.com/shyamsunderpolu/Secure-Ranked-Multi-Keyword-Search-System" target="_blank"><i class="bi bi-github"></i> GitHub Repository</a></li>
+          <li><a href="#architecture">Architecture Specification</a></li>
+          <li><a href="#features">Key Features Log</a></li>
+        </ul>
       </div>
-      <button type="submit" class="btn-full">Login →</button>
-    </form>
-  </div>
-</div>
+      <div class="footer-col">
+        <h4>Developer Info</h4>
+        <p style="font-weight: 600; color: var(--text-main);">POLU SHYAM SUNDER REDDY</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Full Stack Java Developer</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">GNI (Guru Nanak Institutions)</p>
+        <p style="margin-top: 10px; font-size: 13px;">
+          <a href="https://github.com/shyamsunderpolu" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="bi bi-github"></i> GitHub Profile
+          </a>
+        </p>
+      </div>
+    </div>
+    
+    <div style="text-align: center; border-top: 1px solid var(--border); padding-top: 24px; color: var(--text-faint); font-size: 12px;">
+      &copy; 2026 SecureRank Cloud Search System. All rights reserved.
+    </div>
+  </footer>
 
-<script>
-  function openModal() {
-    document.getElementById('loginModal').classList.add('active');
-  }
-  function closeModal() {
-    document.getElementById('loginModal').classList.remove('active');
-  }
-  document.getElementById('loginModal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
-</script>
-
+  <script src="js/theme.js"></script>
+  <script>
+    function openModal() {
+      document.getElementById('loginModal').classList.add('active');
+    }
+    function closeModal() {
+      document.getElementById('loginModal').classList.remove('active');
+    }
+    document.getElementById('loginModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
 </body>
 </html>

@@ -3,9 +3,13 @@
 <%
     HttpSession s = request.getSession(false);
     if (s == null || s.getAttribute("csemail") == null) {
-        response.sendRedirect("CloudControllerLogin.jsp");
+        response.sendRedirect("login.jsp?role=admin");
         return;
     }
+    String csName = (String) s.getAttribute("csname");
+    String csEmail = (String) s.getAttribute("csemail");
+    
+    int pendingDO = 0, pendingDC = 0;
     Connection con = com.dao.DBConnection.connect();
     ResultSet  rs  = null;
     Statement  st  = null;
@@ -17,6 +21,16 @@
           + "from keyreq k "
           + "left join dcregister d on k.uid = d.email "
           + "order by k.id desc");
+          
+        // Fetch pending counts for the menu badges
+        Statement stPending = con.createStatement();
+        ResultSet rsPending = stPending.executeQuery("select count(*) from doregister where status1='Pending'");
+        if (rsPending.next()) pendingDO = rsPending.getInt(1);
+        rsPending.close();
+        rsPending = stPending.executeQuery("select count(*) from dcregister where status='Pending'");
+        if (rsPending.next()) pendingDC = rsPending.getInt(1);
+        rsPending.close();
+        stPending.close();
     } catch (Exception e) {
         try {
             stFallback = con.createStatement();
@@ -30,105 +44,185 @@
 <head>
   <meta charset="UTF-8">
   <title>Decrypt Requests — SecureRank Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --red-mid:#B91C1C; --red-bg:#FEEAEA;
-      --teal-mid:#0F6E56; --teal-bg:#E1F5EE;
-      --amber-bg:#FAEEDA; --amber-mid:#854F0B;
-      --text-main:#1A1A18; --text-muted:#5F5E5A; --text-faint:#A0A09A;
-      --border:rgba(0,0,0,0.09); --white:#fff; --gray-bg:#F7F6F3;
-      --radius-md:10px; --radius-lg:14px;
-    }
-    body { font-family:'DM Sans',sans-serif; background:var(--gray-bg); }
-    nav  { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-title { font-size:15px; font-weight:600; }
-    .nav-sub   { font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    .btn-back  { font-size:12px; padding:6px 14px; background:var(--gray-bg); border:1px solid var(--border); border-radius:var(--radius-md); text-decoration:none; color:var(--text-muted); }
-    .btn-back:hover { border-color:var(--red-mid); color:var(--red-mid); }
-    .page-wrap { max-width:900px; margin:32px auto; padding:0 24px; }
-    .page-header { margin-bottom:20px; }
-    .page-header h2 { font-size:20px; font-weight:600; }
-    .page-header p  { font-size:13px; color:var(--text-muted); margin-top:4px; }
-    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
-    .table-top  { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-    .table-top-title { font-size:14px; font-weight:600; }
-    .table-top-sub   { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    table { width:100%; border-collapse:collapse; }
-    thead th { padding:10px 14px; text-align:left; font-size:11px; font-weight:500; color:var(--text-faint); text-transform:uppercase; background:var(--gray-bg); border-bottom:1px solid var(--border); letter-spacing:0.05em; }
-    tbody tr { border-bottom:1px solid var(--border); transition:background 0.12s; }
-    tbody tr:last-child { border-bottom:none; }
-    tbody tr:hover { background:#FAFAF8; }
-    tbody td { padding:12px 14px; font-size:13px; vertical-align:middle; }
-    .mono { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); }
-    .status-approved { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:var(--teal-bg);  color:var(--teal-mid);  font-weight:500; }
-    .status-pending  { display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px; background:var(--amber-bg); color:var(--amber-mid); font-weight:500; }
-    .btn-approve { font-size:11px; font-weight:500; padding:5px 14px; background:var(--teal-mid); color:#fff; border:none; border-radius:var(--radius-md); text-decoration:none; }
-    .empty-row td { text-align:center; padding:40px; color:var(--text-faint); }
-  </style>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<nav>
-  <div>
-    <div class="nav-title">DC Decrypt Requests</div>
-    <div class="nav-sub">Admin · SecureRank</div>
+
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">Cloud Admin Panel</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="CSHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="ViewDOList.jsp" class="sidebar-link">
+            <i class="bi bi-people-fill"></i> Manage Owners
+            <% if (pendingDO > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDO %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewDCList.jsp" class="sidebar-link">
+            <i class="bi bi-people-fill"></i> Manage Consumers
+            <% if (pendingDC > 0) { %><span class="badge badge-danger" style="margin-left:auto; font-size: 10px; padding: 2px 6px;"><%= pendingDC %></span><% } %>
+          </a>
+        </li>
+        <li>
+          <a href="ViewUploadedFiles.jsp" class="sidebar-link">
+            <i class="bi bi-folder-fill"></i> View Encrypted Files
+          </a>
+        </li>
+        <li>
+          <a href="ViewSearchRequests.jsp" class="sidebar-link">
+            <i class="bi bi-activity"></i> Search Activity
+          </a>
+        </li>
+        <li>
+          <a href="DCDecryptRequest.jsp" class="sidebar-link active">
+            <i class="bi bi-key-fill"></i> Decrypt Requests
+          </a>
+        </li>
+        <li>
+          <a href="ViewEqualityCheck.jsp" class="sidebar-link">
+            <i class="bi bi-clipboard-check-fill"></i> Equality Verifications
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= csName.substring(0, Math.min(csName.length(), 2)).toUpperCase() %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= csName %>"><%= csName %></div>
+          <div class="sidebar-user-role">Cloud Administrator</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Manage Decryption Authorizations</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= csEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Data Consumer Decrypt Requests</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Approve or decline key release requests submitted by Data Consumers wishing to decrypt target database assets.</p>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Key Access Requests Queue</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">#</th>
+                <th>Consumer Name</th>
+                <th>Consumer Email</th>
+                <th style="width: 100px;">File ID</th>
+                <th style="width: 150px;">Status</th>
+                <th style="width: 160px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasRows = false; int cnt = 1;
+                if (rs != null) {
+                  while (rs.next()) {
+                    hasRows = true;
+                    String uid     = rs.getString("uid");
+                    String fid     = rs.getString("fid");
+                    String status1 = rs.getString("status1");
+                    String dcName  = "";
+                    try { dcName = rs.getString("name"); } catch(Exception ignored){}
+              %>
+              <tr>
+                <td class="mono"><%= cnt++ %></td>
+                <td><strong><%= dcName != null && !dcName.isEmpty() ? dcName : "—" %></strong></td>
+                <td class="mono" style="color: var(--text-muted);"><%= uid %></td>
+                <td class="mono"><%= fid %></td>
+                <td>
+                  <% if ("Approved".equals(status1)) { %>
+                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Approved</span>
+                  <% } else { %>
+                    <span class="badge badge-warning"><i class="bi bi-clock-fill"></i> Pending</span>
+                  <% } %>
+                </td>
+                <td style="text-align: center;">
+                  <% if (!"Approved".equals(status1)) { %>
+                    <a href="DCDecryptRequest?uid=<%= uid %>&fid=<%= fid %>" class="btn btn-primary btn-sm">
+                      <i class="bi bi-check-lg"></i> Approve
+                    </a>
+                  <% } else { %>
+                    <span style="font-size:12px; color: var(--text-faint); font-weight: 500;"><i class="bi bi-shield-fill-check"></i> Released</span>
+                  <% } %>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasRows) {
+              %>
+              <tr class="empty-row">
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-key"></i></div>
+                    <div class="empty-title">Queue is empty</div>
+                    <div class="empty-desc">No decrypt requests currently submitted by Data Consumers.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
-  <a href="CSHome.jsp" class="btn-back">← Dashboard</a>
-</nav>
-<div class="page-wrap">
-  <div class="page-header">
-    <h2>Data Consumer Decrypt Requests</h2>
-    <p>Approve requests from Data Consumers to access master keys for decrypting matched files.</p>
-  </div>
-  <div class="table-card">
-    <div class="table-top">
-      <div class="table-top-title">Key Access Requests</div>
-      <div class="table-top-sub">keyreq table · status1</div>
-    </div>
-    <table>
-      <thead>
-        <tr><th>#</th><th>DC Name</th><th>DC Email</th><th>File ID</th><th>Status</th><th>Action</th></tr>
-      </thead>
-      <tbody>
-        <%
-          boolean hasRows = false; int cnt = 1;
-          if (rs != null) {
-            while (rs.next()) {
-              hasRows = true;
-              String uid     = rs.getString("uid");
-              String fid     = rs.getString("fid");
-              String status1 = rs.getString("status1");
-              String dcName  = "";
-              try { dcName = rs.getString("name"); } catch(Exception ignored){}
-        %>
-        <tr>
-          <td class="mono"><%= cnt++ %></td>
-          <td><strong><%= dcName != null && !dcName.isEmpty() ? dcName : "—" %></strong></td>
-          <td class="mono"><%= uid %></td>
-          <td class="mono"><%= fid %></td>
-          <td>
-            <% if ("Approved".equals(status1)) { %>
-              <span class="status-approved">Approved</span>
-            <% } else { %>
-              <span class="status-pending">Pending</span>
-            <% } %>
-          <td>
-            <% if (!"Approved".equals(status1)) { %>
-              <a href="DCDecryptRequest?uid=<%= uid %>&fid=<%= fid %>" class="btn-approve">Approve</a>
-            <% } else { %>
-              <span style="font-size:12px;color:var(--text-faint);">Done</span>
-            <% } %>
-          </td>
-        </tr>
-        <% } }
-          if (!hasRows) { %>
-        <tr class="empty-row"><td colspan="6">No decrypt requests submitted yet.</td></tr>
-        <% } %>
-      </tbody>
-    </table>
-  </div>
-</div>
-<% try{if(rs!=null)rs.close();}catch(Exception e){} try{if(st!=null)st.close();}catch(Exception e){} try{if(stFallback!=null)stFallback.close();}catch(Exception e){} try{if(con!=null)con.close();}catch(Exception e){} %>
+
+  <script src="js/theme.js"></script>
 </body>
 </html>
+<%
+  try { if (rs != null) rs.close(); } catch (Exception ignored) {}
+  try { if (st != null) st.close(); } catch (Exception ignored) {}
+  try { if (stFallback != null) stFallback.close(); } catch (Exception ignored) {}
+  try { if (con != null) con.close(); } catch (Exception ignored) {}
+%>

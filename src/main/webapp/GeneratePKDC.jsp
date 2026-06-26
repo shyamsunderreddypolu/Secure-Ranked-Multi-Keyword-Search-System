@@ -4,10 +4,11 @@
 <%
     HttpSession s = request.getSession(false);
     if (s == null || s.getAttribute("pkgemail") == null) {
-        response.sendRedirect("login.jsp");
+        response.sendRedirect("login.jsp?role=pkg");
         return;
     }
     String pkgName = (String) s.getAttribute("pkgname");
+    String pkgEmail = (String) s.getAttribute("pkgemail");
 
     // Load all Approved Data Consumers from DB
     Connection con = com.dao.DBConnection.connect();
@@ -24,142 +25,153 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Generate Key for DC — SecureRank PKG</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --purple-mid:#534AB7; --purple-light:#EEEDFE; --purple-bdr:#C5C2F5;
-      --teal-bg:#E1F5EE; --teal-mid:#0F6E56;
-      --text-main:#1A1A18; --text-muted:#5F5E5A; --text-faint:#A0A09A;
-      --border:rgba(0,0,0,0.09); --white:#ffffff; --gray-bg:#F7F6F3;
-      --radius-md:10px; --radius-lg:14px;
-    }
-    body { font-family:'DM Sans',sans-serif; background:var(--gray-bg); color:var(--text-main); }
-    nav { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-left { display:flex; align-items:center; gap:10px; }
-    .nav-icon { width:36px; height:36px; background:var(--purple-mid); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
-    .nav-icon svg { width:18px; height:18px; }
-    .nav-title { font-size:15px; font-weight:600; }
-    .nav-sub   { font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    .nav-right { display:flex; gap:12px; align-items:center; }
-    .btn-back { font-size:12px; padding:6px 14px; background:var(--gray-bg); border:1px solid var(--border); border-radius:var(--radius-md); text-decoration:none; color:var(--text-muted); }
-    .btn-back:hover { border-color:var(--purple-mid); color:var(--purple-mid); }
-
-    .page-wrap { max-width:860px; margin:32px auto; padding:0 24px; }
-    .page-header { margin-bottom:24px; }
-    .page-header h2 { font-size:20px; font-weight:600; color:var(--text-main); }
-    .page-header p  { font-size:13px; color:var(--text-muted); margin-top:4px; }
-
-    /* TABLE */
-    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
-    .table-top  { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .table-top-title { font-size:14px; font-weight:600; color:var(--text-main); }
-    .table-top-count { font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; }
-    table { width:100%; border-collapse:collapse; }
-    thead th { padding:10px 20px; text-align:left; font-size:11px; font-weight:500; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; background:var(--gray-bg); border-bottom:1px solid var(--border); }
-    tbody tr { border-bottom:1px solid var(--border); transition:background 0.12s; }
-    tbody tr:last-child { border-bottom:none; }
-    tbody tr:hover { background:#FAFAF8; }
-    tbody td { padding:14px 20px; font-size:13px; color:var(--text-main); vertical-align:middle; }
-    .email-cell { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-muted); }
-    .status-badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:999px; font-weight:500; }
-    .status-approved { background:var(--teal-bg); color:var(--teal-mid); }
-
-    /* GENERATE BUTTON */
-    .btn-generate {
-      display:inline-block; font-size:12px; font-weight:500;
-      background:var(--purple-mid); color:#fff; border:none;
-      padding:7px 16px; border-radius:var(--radius-md);
-      text-decoration:none; cursor:pointer; font-family:'DM Sans',sans-serif;
-      transition:background 0.15s;
-    }
-    .btn-generate:hover { background:#2D2785; }
-
-    .empty-row td { text-align:center; padding:32px; color:var(--text-faint); font-size:13px; }
-  </style>
+  
+  <!-- Font and Icon Resources -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<nav>
-  <div class="nav-left">
-    <div class="nav-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#C5C2F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-      </svg>
-    </div>
-    <div>
-      <div class="nav-title">Generate Key for DC</div>
-      <div class="nav-sub">PKG Module · SecureRank</div>
-    </div>
-  </div>
-  <div class="nav-right">
-    <a href="PKGHome.jsp" class="btn-back">← Dashboard</a>
-  </div>
-</nav>
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <i class="bi bi-shield-lock-fill" style="color: #fff; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="sidebar-logo-text">SecureRank</div>
+          <div class="sidebar-logo-sub">PKG Administrator</div>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li>
+          <a href="PKGHome.jsp" class="sidebar-link">
+            <i class="bi bi-grid-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="GeneratePKDC.jsp" class="sidebar-link active">
+            <i class="bi bi-key-fill"></i> Generate Keys for DC
+          </a>
+        </li>
+        <li>
+          <a href="SendKeysToDC.jsp" class="sidebar-link">
+            <i class="bi bi-send-fill"></i> Send Master Keys
+          </a>
+        </li>
+        <li style="margin-top: auto;">
+          <a href="LoginServlet?action=logout" class="sidebar-link" style="color: var(--danger-dark); background-color: var(--danger-light); border: 1px solid var(--danger-border);">
+            <i class="bi bi-box-arrow-left"></i> Logout
+          </a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">
+          <%= pkgName.substring(0, Math.min(pkgName.length(), 2)).toUpperCase() %>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sidebar-user-name" title="<%= pkgName %>"><%= pkgName %></div>
+          <div class="sidebar-user-role">PKG Authority</div>
+        </div>
+      </div>
+    </aside>
 
-<div class="page-wrap">
-  <div class="page-header">
-    <h2>Generate Secret Key for Data Consumer</h2>
-    <p>Select a Data Consumer from the list below and click Generate Key to issue their Secret Key (sk). This key allows them to create encrypted search trapdoors.</p>
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Topnav -->
+      <header class="topnav">
+        <div class="topnav-title">Generate Consumer Search Key</div>
+        <div class="topnav-actions">
+          <button class="theme-toggle" aria-label="Toggle Dark Mode"></button>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Logged in: <strong style="color: var(--text-main);"><%= pkgEmail %></strong>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Body -->
+      <div class="content-body">
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 600;">Issue Secret Key (sk)</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Generate unique user-level keys. This permits consumers to execute encrypted search queries without exposing plaintext keywords.</p>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Approved Data Consumers</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>Name</th>
+                <th>Email Address</th>
+                <th style="width: 150px;">Mobile</th>
+                <th style="width: 130px;">Verification</th>
+                <th style="width: 160px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%
+                boolean hasRows = false;
+                int count = 1;
+                if (rs != null) {
+                  while (rs.next()) {
+                    hasRows = true;
+                    String dcName   = rs.getString("name");
+                    String dcEmail  = rs.getString("email");
+                    String dcMobile = rs.getString("mobile");
+              %>
+              <tr>
+                <td><%= count++ %></td>
+                <td><strong><%= dcName %></strong></td>
+                <td class="mono" style="color: var(--text-muted);"><%= dcEmail %></td>
+                <td class="mono"><%= dcMobile != null && !dcMobile.isEmpty() ? dcMobile : "—" %></td>
+                <td>
+                  <span class="badge badge-success"><i class="bi bi-patch-check-fill"></i> Approved</span>
+                </td>
+                <td style="text-align: center;">
+                  <a href="GeneratePKDC?email=<%= dcEmail %>" class="btn btn-primary btn-sm">
+                    <i class="bi bi-key-fill"></i> Generate Key
+                  </a>
+                </td>
+              </tr>
+              <%
+                  }
+                }
+                if (!hasRows) {
+              %>
+              <tr class="empty-row">
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-people"></i></div>
+                    <div class="empty-title">No consumers registered</div>
+                    <div class="empty-desc">There are no approved Data Consumers on the system waiting for keys.</div>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+
   </div>
 
-  <div class="table-card">
-    <div class="table-top">
-      <div class="table-top-title">Approved Data Consumers</div>
-      <div class="table-top-count">keygen table · sk / mk / uid</div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Mobile</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <%
-          boolean hasRows = false;
-          int count = 1;
-          if (rs != null) {
-            while (rs.next()) {
-              hasRows = true;
-              String dcName   = rs.getString("name");
-              String dcEmail  = rs.getString("email");
-              String dcMobile = rs.getString("mobile");
-        %>
-        <tr>
-          <td><%= count++ %></td>
-          <td><strong><%= dcName %></strong></td>
-          <td class="email-cell"><%= dcEmail %></td>
-          <td><%= dcMobile %></td>
-          <td><span class="status-badge status-approved">Approved</span></td>
-          <td>
-            <a href="GeneratePKDC?email=<%= dcEmail %>" class="btn-generate">
-              Generate Key
-            </a>
-          </td>
-        </tr>
-        <%
-            }
-          }
-          if (!hasRows) {
-        %>
-        <tr class="empty-row">
-          <td colspan="6">No approved Data Consumers found. Ask Admin to approve DC accounts first.</td>
-        </tr>
-        <% } %>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<%
-  try { if (rs  != null) rs.close();  } catch (Exception ignored) {}
-  try { if (st  != null) st.close();  } catch (Exception ignored) {}
-  try { if (con != null) con.close(); } catch (Exception ignored) {}
-%>
+  <script src="js/theme.js"></script>
 </body>
 </html>
+<%
+  try { if (rs != null) rs.close(); } catch (Exception ignored) {}
+  try { if (st != null) st.close(); } catch (Exception ignored) {}
+  try { if (con != null) con.close(); } catch (Exception ignored) {}
+%>
