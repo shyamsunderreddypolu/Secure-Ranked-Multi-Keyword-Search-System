@@ -47,6 +47,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ApiResponse.builder()
+                        .success(false)
+                        .message("Access Denied: You do not have permission to perform this action.")
+                        .build()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse> handleGenericException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
